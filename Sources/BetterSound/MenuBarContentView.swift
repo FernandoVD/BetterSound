@@ -105,7 +105,6 @@ struct MenuBarContentView: View {
             Text("Input")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 2)
 
             HStack(spacing: 8) {
                 Image(systemName: "mic.fill")
@@ -117,22 +116,35 @@ struct MenuBarContentView: View {
                     get: { audio.inputVolume },
                     set: { audio.setInputVolume($0) }
                 ), height: 20)
-            }
 
-            if !audio.inputDevices.isEmpty {
-                GlassEffectContainer {
-                    ForEach(audio.inputDevices) { device in
-                        DeviceRow(
-                            symbolName: device.kind.inputSymbolName,
-                            name: device.name,
-                            isSelected: device.id == audio.defaultInputDeviceID
-                        ) {
-                            audio.selectInputDevice(device)
+                if !audio.inputDevices.isEmpty {
+                    inputDeviceMenu
+                }
+            }
+        }
+    }
+
+    private var inputDeviceMenu: some View {
+        Menu {
+            ForEach(audio.inputDevices) { device in
+                Button {
+                    audio.selectInputDevice(device)
+                } label: {
+                    HStack {
+                        Text(device.name)
+                        if device.id == audio.defaultInputDeviceID {
+                            Image(systemName: "checkmark")
                         }
                     }
                 }
             }
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
         }
+        .menuStyle(.borderlessButton)
+        .frame(width: 16)
     }
 
     // MARK: - Per-app volume
