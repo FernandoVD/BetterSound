@@ -2,10 +2,10 @@ import SwiftUI
 
 /// Matches Apple's own Control Center Sound module directly: bold section
 /// title, a custom pill slider (see PillSlider.swift) using real Liquid Glass
-/// for its track, device rows with a glass circular icon badge tinted green
-/// when active (no trailing checkmark), and no boxed "card" backgrounds —
-/// everything just sits on the popover's own vibrant background with
-/// dividers between sections.
+/// for its track, and no boxed "card" backgrounds — everything just sits on
+/// the popover's own vibrant background with dividers between sections.
+/// Output/Input device pickers are single compact rows (icon + name + a
+/// small trailing chevron menu) rather than an expanded list of rows.
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
@@ -85,30 +85,56 @@ struct MenuBarContentView: View {
     // MARK: - Output devices
 
     private var outputSection: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Output")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .padding(.bottom, 2)
 
-            if audio.devices.isEmpty {
-                Text("No output devices found")
+            HStack(spacing: 8) {
+                Image(systemName: currentOutputSymbolName)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            } else {
-                GlassEffectContainer {
-                    ForEach(audio.devices) { device in
-                        DeviceRow(
-                            symbolName: device.kind.symbolName,
-                            name: device.name,
-                            isSelected: device.id == audio.defaultDeviceID
-                        ) {
-                            audio.selectDevice(device)
+                    .foregroundStyle(.primary)
+                    .frame(width: 16)
+
+                Text(currentDeviceName)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Spacer()
+
+                if !audio.devices.isEmpty {
+                    outputDeviceMenu
+                }
+            }
+        }
+    }
+
+    private var outputDeviceMenu: some View {
+        Menu {
+            ForEach(audio.devices) { device in
+                Button {
+                    audio.selectDevice(device)
+                } label: {
+                    HStack {
+                        Text(device.name)
+                        if device.id == audio.defaultDeviceID {
+                            Image(systemName: "checkmark")
                         }
                     }
                 }
             }
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
         }
+        .menuStyle(.borderlessButton)
+        .frame(width: 16)
+    }
+
+    private var currentOutputSymbolName: String {
+        audio.devices.first(where: { $0.id == audio.defaultDeviceID })?.kind.symbolName ?? "speaker.wave.2.fill"
     }
 
     // MARK: - Input
@@ -172,39 +198,6 @@ struct MenuBarContentView: View {
                 AppVolumeRow(item: item, devices: audio.devices)
             }
         }
-    }
-}
-
-private struct DeviceRow: View {
-    let symbolName: String
-    let name: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(.clear)
-                        .glassEffect(.regular, in: .circle)
-                    Image(systemName: symbolName)
-                        .font(.system(size: 12))
-                        .foregroundStyle(isSelected ? Color.green : Color.primary)
-                }
-                .frame(width: 26, height: 26)
-
-                Text(name)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Spacer()
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .padding(.vertical, 3)
     }
 }
 
