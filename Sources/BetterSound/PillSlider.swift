@@ -1,11 +1,13 @@
 import SwiftUI
 
-/// Matches Apple's own Control Center volume slider: a full-width translucent
-/// capsule track with a solid capsule "fill" growing from the left — the fill
-/// itself is the thumb, draggable anywhere along its length, and tappable to
-/// jump straight to a position. SwiftUI's stock `Slider` doesn't render this
-/// way on macOS, which is why it looked "not native" — this is a from-scratch
-/// replica of the real control instead of an approximation of one.
+/// Matches the real native slider used in macOS's Sound Control Center and
+/// iOS Control Center: a thin full-width track with a distinct round white
+/// knob riding on top of it — not a growing filled bar. (An earlier version
+/// of this view used a filled-capsule design; verified against reference
+/// screenshots of the actual native control that this was wrong — the fill
+/// isn't the thumb, a separate circular knob is.) SwiftUI's stock `Slider`
+/// doesn't render this way in a MenuBarExtra popover, which is why this is
+/// a from-scratch replica instead.
 ///
 /// `useGlass` defaults to true, but per Apple's Liquid Glass guidance
 /// ("limit these effects to the most important functional elements... avoid
@@ -19,24 +21,33 @@ struct PillSlider: View {
 
     @Environment(\.isEnabled) private var isEnabled
 
+    private var trackHeight: CGFloat { height <= 14 ? 4 : 6 }
+    private var knobDiameter: CGFloat { height <= 14 ? 12 : 18 }
+
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
-            let fillWidth = max(height, width * CGFloat(value))
+            let knobRadius = knobDiameter / 2
+            let knobX = knobRadius + max(0, width - knobDiameter) * CGFloat(value)
 
             ZStack(alignment: .leading) {
-                if useGlass {
-                    Capsule(style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(.regular, in: .capsule)
-                } else {
-                    Capsule(style: .continuous)
-                        .fill(.quaternary)
+                Group {
+                    if useGlass {
+                        Capsule(style: .continuous)
+                            .fill(.clear)
+                            .glassEffect(.regular, in: .capsule)
+                    } else {
+                        Capsule(style: .continuous)
+                            .fill(.quaternary)
+                    }
                 }
+                .frame(height: trackHeight)
 
-                Capsule(style: .continuous)
-                    .fill(.primary.opacity(0.85))
-                    .frame(width: fillWidth)
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: knobDiameter, height: knobDiameter)
+                    .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+                    .position(x: knobX, y: height / 2)
             }
             .frame(height: height)
             .contentShape(Rectangle())
