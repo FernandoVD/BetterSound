@@ -4,13 +4,21 @@ import SwiftUI
 /// title, a custom pill slider (see PillSlider.swift), and no boxed "card"
 /// backgrounds — everything just sits on the popover's own vibrant
 /// background with dividers between sections. Output/Input device pickers
-/// are single compact rows (icon + name + a small trailing chevron menu)
-/// rather than an expanded list of rows.
+/// are a compact single row at rest (icon + name + chevron); tapping it
+/// expands an inline list of rich rows (circular icon badge, tinted green
+/// when active) matching the real Control Center's own device list — built
+/// as an inline expand/collapse rather than a SwiftUI `Menu`, since a
+/// native Menu can't host custom circular-badge rows, and mixing a custom
+/// icon label with Menu's own automatic disclosure indicator was exactly
+/// what caused the earlier chevron-overlap bug.
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
     @EnvironmentObject private var updates: UpdateChecker
     @Environment(\.openWindow) private var openWindow
+
+    @State private var isOutputExpanded = false
+    @State private var isInputExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -126,51 +134,57 @@ struct MenuBarContentView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: 8) {
-                Image(systemName: currentOutputSymbolName)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.primary)
-                    .frame(width: 16, height: 16)
-
-                Text(currentDeviceName)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Spacer()
-
-                if !audio.devices.isEmpty {
-                    outputDeviceMenu
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isOutputExpanded.toggle()
                 }
-            }
-        }
-    }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: currentOutputSymbolName)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.primary)
+                        .frame(width: 16, height: 16)
 
-    private var outputDeviceMenu: some View {
-        Menu {
-            // Devices that can't actually be set as the system default (e.g.
-            // Microsoft Teams' virtual audio device) are left out entirely —
-            // macOS silently no-ops a switch to one, so offering it as a
-            // choice would just look broken.
-            ForEach(audio.devices.filter(\.canBeDefault)) { device in
-                Button {
-                    audio.selectDevice(device)
-                } label: {
-                    HStack {
-                        Text(device.name)
-                        if device.id == audio.defaultDeviceID {
-                            Image(systemName: "checkmark")
+                    Text(currentDeviceName)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    if !audio.devices.isEmpty {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .rotationEffect(.degrees(isOutputExpanded ? 180 : 0))
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(audio.devices.isEmpty)
+
+            if isOutputExpanded {
+                VStack(spacing: 2) {
+                    // Devices that can't actually be set as the system
+                    // default (e.g. Microsoft Teams' virtual audio device)
+                    // are left out entirely — macOS silently no-ops a
+                    // switch to one, so offering it would just look broken.
+                    ForEach(audio.devices.filter(\.canBeDefault)) { device in
+                        DeviceRow(
+                            symbolName: device.kind.symbolName,
+                            name: device.name,
+                            isSelected: device.id == audio.defaultDeviceID
+                        ) {
+                            audio.selectDevice(device)
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                isOutputExpanded = false
+                            }
                         }
                     }
                 }
             }
-        } label: {
-            Image(systemName: "chevron.down")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
         }
-        .menuStyle(.borderlessButton)
-        .frame(width: 16)
     }
 
     private var currentOutputSymbolName: String {
@@ -214,33 +228,39 @@ struct MenuBarContentView: View {
                 ), height: 14)
 
                 if !audio.inputDevices.isEmpty {
-                    inputDeviceMenu
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            isInputExpanded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .rotationEffect(.degrees(isInputExpanded ? 180 : 0))
+                            .frame(width: 16, height: 16)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-        }
-    }
 
-    private var inputDeviceMenu: some View {
-        Menu {
-            ForEach(audio.inputDevices.filter(\.canBeDefault)) { device in
-                Button {
-                    audio.selectInputDevice(device)
-                } label: {
-                    HStack {
-                        Text(device.name)
-                        if device.id == audio.defaultInputDeviceID {
-                            Image(systemName: "checkmark")
+            if isInputExpanded {
+                VStack(spacing: 2) {
+                    ForEach(audio.inputDevices.filter(\.canBeDefault)) { device in
+                        DeviceRow(
+                            symbolName: device.kind.inputSymbolName,
+                            name: device.name,
+                            isSelected: device.id == audio.defaultInputDeviceID
+                        ) {
+                            audio.selectInputDevice(device)
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                isInputExpanded = false
+                            }
                         }
                     }
                 }
             }
-        } label: {
-            Image(systemName: "chevron.down")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
         }
-        .menuStyle(.borderlessButton)
-        .frame(width: 16)
     }
 
     // MARK: - Per-app volume
@@ -346,7 +366,8 @@ private struct AppVolumeRow: View {
                 .foregroundStyle(.secondary)
         }
         .menuStyle(.borderlessButton)
-        .frame(width: 20)
+        .menuIndicator(.hidden)
+        .frame(width: 20, height: 16)
     }
 
     private var outputIconName: String {
@@ -354,5 +375,41 @@ private struct AppVolumeRow: View {
             return device.kind.symbolName
         }
         return "arrow.triangle.branch"
+    }
+}
+
+/// A device row for the expanded Output/Input lists, matching Control
+/// Center's own device rows: a circular icon badge that itself changes —
+/// white background, green icon — when active, rather than a trailing
+/// checkmark.
+private struct DeviceRow: View {
+    let symbolName: String
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.quaternary))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: symbolName)
+                        .font(.system(size: 12))
+                        .foregroundStyle(isSelected ? Color.green : Color.primary)
+                }
+
+                Text(name)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 3)
     }
 }
