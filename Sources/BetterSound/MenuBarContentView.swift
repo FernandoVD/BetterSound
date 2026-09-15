@@ -63,8 +63,21 @@ struct MenuBarContentView: View {
 
     private var volumeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Sound")
-                .font(.system(size: 15, weight: .bold))
+            HStack {
+                Text("Sound")
+                    .font(.system(size: 15, weight: .bold))
+
+                Spacer()
+
+                // The one authoritative number in the popover — this is
+                // "the actual volume level," as opposed to Input/per-app
+                // controls, which is also why this row stays visually the
+                // largest: it's the only true master reading.
+                Text("\(Int((audio.isMuted ? 0 : audio.masterVolume) * 100))%")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
 
             HStack(spacing: 8) {
                 Button {
@@ -177,16 +190,19 @@ struct MenuBarContentView: View {
                     audio.toggleInputMute()
                 } label: {
                     Image(systemName: audio.isInputMuted ? "mic.slash.fill" : "mic.fill")
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundStyle(.primary)
                         .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
 
+                // Deliberately smaller than the master Sound slider — Input
+                // is one control among several, not the one authoritative
+                // "this is the volume" reading Sound represents.
                 PillSlider(value: Binding(
                     get: { audio.isInputMuted ? 0 : audio.inputVolume },
                     set: { audio.setInputVolume($0) }
-                ), height: 20)
+                ), height: 14)
 
                 if !audio.inputDevices.isEmpty {
                     inputDeviceMenu
