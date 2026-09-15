@@ -1,23 +1,24 @@
 import SwiftUI
 
 /// Matches the real native slider used in macOS's Sound Control Center and
-/// iOS Control Center: a thin full-width track with a distinct round white
-/// knob riding on top of it — not a growing filled bar. (An earlier version
-/// of this view used a filled-capsule design; verified against reference
-/// screenshots of the actual native control that this was wrong — the fill
-/// isn't the thumb, a separate circular knob is.) SwiftUI's stock `Slider`
-/// doesn't render this way in a MenuBarExtra popover, which is why this is
-/// a from-scratch replica instead.
+/// iOS Control Center: a thin track, a brighter fill up to the current
+/// value, and a distinct round white knob riding on top at that position —
+/// not a growing filled bar where the fill itself is the thumb (an earlier
+/// version got this wrong). Prototyped as an HTML/CSS mockup first and
+/// screenshotted for comparison against reference photos of the real
+/// control, since the native app itself isn't screenshottable here.
 ///
-/// `useGlass` defaults to true, but per Apple's Liquid Glass guidance
-/// ("limit these effects to the most important functional elements... avoid
-/// overusing Liquid Glass... in multiple custom controls"), only the
-/// primary sliders (master Sound, Input) should use it — pass `false` for
-/// secondary/repeated controls like a per-app row, of which there can be many.
+/// Deliberately not using `.glassEffect()` here. Apple's guidance says the
+/// *knob* should turn to glass during interaction, not the track, but two
+/// separate attempts at combining a glassEffect element with plain sibling
+/// shapes in this same ZStack produced real rendering/z-order artifacts
+/// (the track visibly cut through the knob). Rather than risk a third blind
+/// regression in a component that can't be visually verified without a
+/// screenshot from the user, this sticks to plain materials that are
+/// already confirmed correct.
 struct PillSlider: View {
     @Binding var value: Float
     var height: CGFloat = 20
-    var useGlass: Bool = true
 
     @Environment(\.isEnabled) private var isEnabled
 
@@ -31,17 +32,13 @@ struct PillSlider: View {
             let knobX = knobRadius + max(0, width - knobDiameter) * CGFloat(value)
 
             ZStack(alignment: .leading) {
-                Group {
-                    if useGlass {
-                        Capsule(style: .continuous)
-                            .fill(.clear)
-                            .glassEffect(.regular, in: .capsule)
-                    } else {
-                        Capsule(style: .continuous)
-                            .fill(.quaternary)
-                    }
-                }
-                .frame(height: trackHeight)
+                Capsule(style: .continuous)
+                    .fill(.quaternary)
+                    .frame(height: trackHeight)
+
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.85))
+                    .frame(width: knobX, height: trackHeight)
 
                 Circle()
                     .fill(Color.white)

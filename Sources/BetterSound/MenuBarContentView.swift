@@ -6,12 +6,6 @@ import SwiftUI
 /// background with dividers between sections. Output/Input device pickers
 /// are single compact rows (icon + name + a small trailing chevron menu)
 /// rather than an expanded list of rows.
-///
-/// Liquid Glass (per Apple's adoption guide) is limited to the two primary
-/// sliders — master Sound and Input — combined in one GlassEffectContainer;
-/// per-app rows use a plain track since there can be many of them and the
-/// guidance explicitly warns against overusing the effect across multiple
-/// custom controls.
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
@@ -19,10 +13,6 @@ struct MenuBarContentView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        // Apple's Liquid Glass guidance: combine custom glass effects in one
-        // GlassEffectContainer to optimize rendering, rather than each glass
-        // element (master + input sliders here) rendering independently.
-        GlassEffectContainer {
         VStack(alignment: .leading, spacing: 10) {
             volumeSection
             Divider()
@@ -67,7 +57,6 @@ struct MenuBarContentView: View {
         }
         .padding(14)
         .frame(width: 280)
-        }
     }
 
     // MARK: - Master volume
@@ -82,9 +71,9 @@ struct MenuBarContentView: View {
                     audio.toggleMute()
                 } label: {
                     Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(.primary)
-                        .frame(width: 16)
+                        .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
                 .disabled(!audio.supportsMasterVolume)
@@ -97,9 +86,9 @@ struct MenuBarContentView: View {
                 .opacity(audio.supportsMasterVolume ? 1 : 0.35)
 
                 Image(systemName: "speaker.wave.3.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.primary)
-                    .frame(width: 16)
+                    .frame(width: 16, height: 16)
             }
 
             if !audio.supportsMasterVolume {
@@ -126,9 +115,9 @@ struct MenuBarContentView: View {
 
             HStack(spacing: 8) {
                 Image(systemName: currentOutputSymbolName)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.primary)
-                    .frame(width: 16)
+                    .frame(width: 16, height: 16)
 
                 Text(currentDeviceName)
                     .font(.system(size: 13))
@@ -188,9 +177,9 @@ struct MenuBarContentView: View {
                     audio.toggleInputMute()
                 } label: {
                     Image(systemName: audio.isInputMuted ? "mic.slash.fill" : "mic.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(.primary)
-                        .frame(width: 16)
+                        .frame(width: 16, height: 16)
                 }
                 .buttonStyle(.plain)
 
@@ -283,8 +272,7 @@ private struct AppVolumeRow: View {
                         get: { item.isMuted ? 0 : item.volume },
                         set: { apps.setVolume($0, for: item) }
                     ),
-                    height: 12,
-                    useGlass: false
+                    height: 12
                 )
             }
         }
