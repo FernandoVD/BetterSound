@@ -8,7 +8,7 @@ import SwiftUI
 /// replica of the real control instead of an approximation of one.
 struct PillSlider: View {
     @Binding var value: Float
-    var height: CGFloat = 28
+    var height: CGFloat = 20
 
     var body: some View {
         GeometryReader { geometry in

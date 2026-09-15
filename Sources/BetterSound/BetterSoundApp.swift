@@ -25,10 +25,13 @@ struct BetterSoundApp: App {
             AboutView()
         }
         .windowResizability(.contentSize)
+        .defaultLaunchBehavior(.suppressed)
 
-        Settings {
+        Window("BetterSound Settings", id: "settings") {
             SettingsView()
         }
+        .windowResizability(.contentSize)
+        .defaultLaunchBehavior(.suppressed)
     }
 }
 

@@ -8,9 +8,10 @@ import SwiftUI
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             volumeSection
             Divider()
             outputSection
@@ -19,45 +20,48 @@ struct MenuBarContentView: View {
                 Divider()
                 appsSection
             }
+
+            Divider()
+
+            Button("BetterSound Settings…") {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "settings")
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
         }
-        .padding(16)
-        .frame(width: 300)
-        .onAppear {
-            // Bring the app's own menu bar (top-left, next to the Apple menu)
-            // to the front while the popover is open — otherwise, as an
-            // accessory app, whatever app was frontmost before keeps its menu
-            // bar showing even though BetterSound is what's on screen.
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        .padding(14)
+        .frame(width: 280)
     }
 
     // MARK: - Master volume
 
     private var volumeSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Sound")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 15, weight: .bold))
 
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Button {
                     audio.toggleMute()
                 } label: {
                     Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.fill")
-                        .font(.system(size: 15))
+                        .font(.system(size: 12))
                         .foregroundStyle(.primary)
-                        .frame(width: 20)
+                        .frame(width: 16)
                 }
                 .buttonStyle(.plain)
 
                 PillSlider(value: Binding(
                     get: { audio.isMuted ? 0 : audio.masterVolume },
                     set: { audio.setMasterVolume($0) }
-                ))
+                ), height: 20)
 
                 Image(systemName: "speaker.wave.3.fill")
-                    .font(.system(size: 15))
+                    .font(.system(size: 12))
                     .foregroundStyle(.primary)
-                    .frame(width: 20)
+                    .frame(width: 16)
             }
         }
     }
@@ -67,13 +71,13 @@ struct MenuBarContentView: View {
     private var outputSection: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Output")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 2)
 
             if audio.devices.isEmpty {
                 Text("No output devices found")
-                    .font(.callout)
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(audio.devices) { device in
@@ -88,9 +92,9 @@ struct MenuBarContentView: View {
     // MARK: - Per-app volume
 
     private var appsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Applications")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
 
             ForEach(apps.items) { item in
@@ -107,18 +111,18 @@ private struct DeviceRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ZStack {
                     Circle()
                         .fill(.quaternary)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 26, height: 26)
                     Image(systemName: device.kind.symbolName)
-                        .font(.system(size: 14))
+                        .font(.system(size: 12))
                         .foregroundStyle(isSelected ? Color.green : Color.primary)
                 }
 
                 Text(device.name)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
@@ -127,7 +131,7 @@ private struct DeviceRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.vertical, 4)
+        .padding(.vertical, 3)
     }
 }
 
@@ -138,15 +142,15 @@ private struct AppVolumeRow: View {
     @EnvironmentObject private var apps: PerAppAudioController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
                 appIcon
                     .resizable()
-                    .frame(width: 20, height: 20)
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    .frame(width: 16, height: 16)
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
 
                 Text(item.name)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .lineLimit(1)
 
                 Spacer()
@@ -159,7 +163,7 @@ private struct AppVolumeRow: View {
                     get: { item.volume },
                     set: { apps.setVolume($0, for: item) }
                 ),
-                height: 20
+                height: 12
             )
         }
     }
