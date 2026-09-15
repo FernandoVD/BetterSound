@@ -11,6 +11,7 @@ final class AudioEngine: ObservableObject {
 
     private let listenerQueue = DispatchQueue(label: "com.fernandovandet.volumemixer.listener")
     private var observedDeviceID: AudioDeviceID?
+    private var pendingVolumeWrite: DispatchWorkItem?
 
     init() {
         refresh()
@@ -51,11 +52,21 @@ final class AudioEngine: ObservableObject {
 
     func setMasterVolume(_ volume: Float) {
         guard let current = defaultDeviceID else { return }
-        masterVolume = volume
-        CoreAudioController.setVolume(current, volume)
+        masterVolume = volume // instant visual feedback, cheap
         if volume > 0, isMuted {
             setMuted(false)
         }
+
+        // A drag can fire this many times a second; each CoreAudio write is an
+        // IPC round-trip to coreaudiod, which is what made dragging feel
+        // choppy. Coalesce bursts into one write every ~16ms (still reads as
+        // live) instead of writing on every pixel of movement.
+        pendingVolumeWrite?.cancel()
+        let work = DispatchWorkItem {
+            CoreAudioController.setVolume(current, volume)
+        }
+        pendingVolumeWrite = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.016, execute: work)
     }
 
     func toggleMute() {

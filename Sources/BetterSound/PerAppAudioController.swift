@@ -70,6 +70,15 @@ final class PerAppAudioController: ObservableObject {
 
     func setVolume(_ volume: Float, for item: AppAudioItem) {
         let clamped = max(0, min(1, volume))
+
+        // A drag fires this dozens of times a second. Update the visible row
+        // in place — cheap — instead of calling refreshAppList(), which
+        // re-enumerates every running app via NSWorkspace and CoreAudio on
+        // every single tick; that full rebuild was what made dragging choppy.
+        if let index = items.firstIndex(where: { $0.pid == item.pid }) {
+            items[index].volume = clamped
+        }
+
         if let engine = engines[item.pid] {
             engine.volume = clamped
             retireIfIdle(item.pid)
@@ -80,7 +89,6 @@ final class PerAppAudioController: ObservableObject {
                 engines[item.pid] = engine
             }
         }
-        refreshAppList()
     }
 
     func setOutputDevice(_ deviceID: AudioDeviceID?, for item: AppAudioItem) {
