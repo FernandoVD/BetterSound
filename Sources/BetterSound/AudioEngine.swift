@@ -8,6 +8,11 @@ final class AudioEngine: ObservableObject {
     @Published private(set) var defaultDeviceID: AudioDeviceID?
     @Published private(set) var masterVolume: Float = 0
     @Published private(set) var isMuted: Bool = false
+    /// False for devices with no single volume level — e.g. a Multi-Output
+    /// Device, which is really several physical devices at once. Each real
+    /// device's volume is independent (verified directly against CoreAudio);
+    /// this only covers the case where there's no one number to show at all.
+    @Published private(set) var supportsMasterVolume: Bool = true
 
     @Published private(set) var inputDevices: [AudioDevice] = []
     @Published private(set) var defaultInputDeviceID: AudioDeviceID?
@@ -64,7 +69,16 @@ final class AudioEngine: ObservableObject {
 
     private func refreshCurrentDeviceState() {
         guard let current = defaultDeviceID else { return }
-        masterVolume = CoreAudioController.volume(of: current) ?? masterVolume
+        if let volume = CoreAudioController.volume(of: current) {
+            supportsMasterVolume = true
+            masterVolume = volume
+        } else {
+            // No single volume level for this device (e.g. Multi-Output
+            // Device) — don't silently keep showing the previous device's
+            // number, which read as "every device is stuck at one synced
+            // volume." The UI disables the slider when this is false.
+            supportsMasterVolume = false
+        }
         isMuted = CoreAudioController.isMuted(current)
     }
 

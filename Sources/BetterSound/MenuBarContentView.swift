@@ -55,18 +55,31 @@ struct MenuBarContentView: View {
                         .frame(width: 16)
                 }
                 .buttonStyle(.plain)
+                .disabled(!audio.supportsMasterVolume)
 
                 PillSlider(value: Binding(
                     get: { audio.isMuted ? 0 : audio.masterVolume },
                     set: { audio.setMasterVolume($0) }
                 ), height: 20)
+                .disabled(!audio.supportsMasterVolume)
+                .opacity(audio.supportsMasterVolume ? 1 : 0.35)
 
                 Image(systemName: "speaker.wave.3.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(.primary)
                     .frame(width: 16)
             }
+
+            if !audio.supportsMasterVolume {
+                Text("\(currentDeviceName) doesn't have a single volume level")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
         }
+    }
+
+    private var currentDeviceName: String {
+        audio.devices.first(where: { $0.id == audio.defaultDeviceID })?.name ?? "This device"
     }
 
     // MARK: - Output devices

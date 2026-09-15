@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8AE0FF"/>
+      <stop offset="55%" stop-color="#2F9BFF"/>
+      <stop offset="100%" stop-color="#0A5FE0"/>
+    </linearGradient>
+    <linearGradient id="glyph" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F8FF"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#bg)"/>
+
+  <!-- speaker glyph -->
+  <g fill="url(#glyph)">
+    <rect x="224" y="420" width="110" height="184" rx="24"/>
+    <path d="M334 420 L334 604 L512 704 C530 714 552 701 552 681 L552 343 C552 323 530 310 512 320 Z"/>
+  </g>
+
+  <!-- plus symbol, in place of the usual sound-wave arcs -->
+  <g fill="url(#glyph)">
+    <rect x="662" y="402" width="56" height="220" rx="28"/>
+    <rect x="580" y="484" width="220" height="56" rx="28"/>
+  </g>
+</svg>

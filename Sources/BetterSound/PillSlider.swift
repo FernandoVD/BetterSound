@@ -10,6 +10,8 @@ struct PillSlider: View {
     @Binding var value: Float
     var height: CGFloat = 20
 
+    @Environment(\.isEnabled) private var isEnabled
+
     var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
@@ -27,10 +29,12 @@ struct PillSlider: View {
             .frame(height: height)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture(minimumDistance: 0)
+                // .disabled() alone doesn't stop a custom-drawn view's own
+                // gesture — this view has to opt out of it itself.
+                isEnabled ? DragGesture(minimumDistance: 0)
                     .onChanged { drag in
                         update(with: drag.location.x, width: width)
-                    }
+                    } : nil
             )
         }
         .frame(height: height)
