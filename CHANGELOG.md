@@ -2,6 +2,20 @@
 
 All notable changes to BetterSound are documented here.
 
+## [1.1.2] - 2026-09-15
+
+### Added
+- The update prompt now also shows `xattr -cr /Applications/BetterSound.app`
+  with its own copy button, alongside the upgrade command.
+
+### Fixed
+- Verified directly (`xattr -l` after a real `brew upgrade --cask
+  bettersound`) that **every update re-triggers the Gatekeeper "Not Opened"
+  dialog**, not just the first install — each release is ad-hoc signed with
+  no stable Developer ID identity, so macOS treats every new version as a
+  never-seen-before binary. Documented in the README's Updating section and
+  surfaced directly in the update prompt so it isn't a surprise.
+
 ## [1.1.1] - 2026-09-15
 
 ### Added

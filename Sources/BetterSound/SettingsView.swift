@@ -67,6 +67,11 @@ struct SettingsView: View {
                             // brew install a second time silently does
                             // nothing — give the actual upgrade command.
                             CopyableCommand(command: "brew upgrade --cask bettersound")
+
+                            // Every update re-quarantines the app (no
+                            // stable Developer ID signature), so this
+                            // recurs too, not just on first install.
+                            CopyableCommand(command: "xattr -cr /Applications/BetterSound.app")
                         }
                     } else if updates.checkFailed {
                         Label("Couldn't check for updates", systemImage: "exclamationmark.triangle")

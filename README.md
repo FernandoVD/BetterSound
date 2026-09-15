@@ -84,6 +84,17 @@ If you installed manually, updating means repeating the manual-download
 step above with the new zip — there's no separate "update" step for that
 path.
 
+**Every update re-triggers the Gatekeeper "Not Opened" dialog**, via either
+path — verified directly: `xattr -l` on a freshly `brew upgrade`d install
+still shows `com.apple.quarantine`. Each release is ad-hoc signed with no
+stable Developer ID identity, so macOS treats every new version as a
+never-seen-before binary, not just the very first install. Clear it again
+after each update the same way:
+
+```bash
+xattr -cr /Applications/BetterSound.app
+```
+
 Either way, this build is **ad-hoc signed, not notarized** — no paid Apple
 Developer account behind this project — so on first launch Gatekeeper will
 say `"BetterSound" Not Opened`. That's not a malware flag, just macOS being
