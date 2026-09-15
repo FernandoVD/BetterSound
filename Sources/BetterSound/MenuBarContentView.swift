@@ -22,6 +22,13 @@ struct MenuBarContentView: View {
         }
         .padding(16)
         .frame(width: 300)
+        .onAppear {
+            // Bring the app's own menu bar (top-left, next to the Apple menu)
+            // to the front while the popover is open — otherwise, as an
+            // accessory app, whatever app was frontmost before keeps its menu
+            // bar showing even though BetterSound is what's on screen.
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     // MARK: - Master volume
