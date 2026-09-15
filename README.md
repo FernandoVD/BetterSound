@@ -30,6 +30,30 @@ directly and only wakes up when a property actually changes.
   `SMAppService`, no LaunchAgent plist needed)
 - No Dock icon by default, no menu bar clutter beyond one icon
 
+## Installation
+
+### Homebrew (recommended)
+
+```bash
+brew tap fernandovd/bettersound
+brew install --cask bettersound
+```
+
+### Manual download
+
+Grab `BetterSound.zip` from the [latest release](https://github.com/FernandoVD/BetterSound/releases/latest), unzip it, and move `BetterSound.app` to `/Applications`.
+
+Either way, this build is **ad-hoc signed, not notarized** — no paid Apple
+Developer account behind this project — so on first launch Gatekeeper will
+say `"BetterSound" Not Opened`. That's not a malware flag, just macOS being
+cautious about unsigned software. Fix it once with:
+
+```bash
+xattr -cr /Applications/BetterSound.app
+```
+
+or right-click `BetterSound.app` in Finder → **Open** → confirm.
+
 ## Requirements
 
 - macOS 26 (Tahoe) or later — the UI uses real **Liquid Glass** materials
