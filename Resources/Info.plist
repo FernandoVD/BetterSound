@@ -26,6 +26,8 @@
     <string>public.app-category.utilities</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026 FernandoVD. MIT License.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>BetterSound captures and rescales an app's own audio locally, on your Mac, so you can control its volume individually. Nothing is recorded, stored, or sent anywhere.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

@@ -246,4 +246,57 @@ enum CoreAudioController {
             }
         }
     }
+
+    // MARK: - Process objects (for per-app taps)
+
+    /// Finds the CoreAudio "process object" for a running app's PID, if it has one
+    /// (i.e. it's registered with the HAL as an audio-capable process).
+    static func audioProcessObjectID(forPID pid: pid_t) -> AudioObjectID? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyProcessObjectList,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size) == noErr,
+              size > 0 else { return nil }
+
+        let count = Int(size) / MemoryLayout<AudioObjectID>.size
+        var ids = [AudioObjectID](repeating: 0, count: count)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &ids) == noErr else {
+            return nil
+        }
+
+        for processID in ids {
+            var pidAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioProcessPropertyPID,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            var candidatePID: pid_t = 0
+            var pidSize = UInt32(MemoryLayout<pid_t>.size)
+            guard AudioObjectGetPropertyData(processID, &pidAddress, 0, nil, &pidSize, &candidatePID) == noErr else { continue }
+            if candidatePID == pid { return processID }
+        }
+        return nil
+    }
+
+    // MARK: - Direct device I/O (for the per-app render engine)
+
+    @discardableResult
+    static func startIOProc(on deviceID: AudioDeviceID, block: @escaping AudioDeviceIOBlock) -> AudioDeviceIOProcID? {
+        var procID: AudioDeviceIOProcID?
+        let status = AudioDeviceCreateIOProcIDWithBlock(&procID, deviceID, nil, block)
+        guard status == noErr, let procID else { return nil }
+        guard AudioDeviceStart(deviceID, procID) == noErr else {
+            AudioDeviceDestroyIOProcID(deviceID, procID)
+            return nil
+        }
+        return procID
+    }
+
+    static func stopIOProc(_ procID: AudioDeviceIOProcID, on deviceID: AudioDeviceID) {
+        AudioDeviceStop(deviceID, procID)
+        AudioDeviceDestroyIOProcID(deviceID, procID)
+    }
 }
