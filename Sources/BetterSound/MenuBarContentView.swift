@@ -181,9 +181,18 @@ struct MenuBarContentView: View {
 
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Input")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
+            HStack {
+                Text("Input")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Text("\(Int((audio.isInputMuted ? 0 : audio.inputVolume) * 100))%")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
 
             HStack(spacing: 8) {
                 Button {
@@ -268,6 +277,11 @@ private struct AppVolumeRow: View {
                     .lineLimit(1)
 
                 Spacer()
+
+                Text("\(Int((item.isMuted ? 0 : item.volume) * 100))%")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
 
                 outputMenu
             }
