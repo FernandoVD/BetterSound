@@ -14,10 +14,14 @@ struct AppAudioItem: Identifiable {
 
 @MainActor
 final class PerAppAudioController: ObservableObject {
+    /// Only apps currently producing sound (or that the user is actively
+    /// overriding) — matches Control Center, which never shows silent apps
+    /// like Finder.
     @Published private(set) var items: [AppAudioItem] = []
 
     private var engines: [pid_t: ProcessTapEngine] = [:]
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var observedProcessObjectIDs: Set<AudioObjectID> = []
     private let listenerQueue = DispatchQueue(label: "com.fernandovandet.bettersound.perapp.listener")
 
     init() {
@@ -33,6 +37,9 @@ final class PerAppAudioController: ObservableObject {
 
         CoreAudioController.addSystemListener(queue: listenerQueue) { [weak self] in
             Task { @MainActor in self?.defaultOutputDeviceChanged() }
+        }
+        CoreAudioController.addProcessListListener(queue: listenerQueue) { [weak self] in
+            Task { @MainActor in self?.refreshAppList() }
         }
     }
 
@@ -53,8 +60,26 @@ final class PerAppAudioController: ObservableObject {
             engines.removeValue(forKey: pid)
         }
 
-        items = running.map { app in
+        let candidates = running.map { app in
+            (app: app, processObjectID: CoreAudioController.audioProcessObjectID(forPID: app.processIdentifier))
+        }
+
+        // Listen for play/pause transitions on every process we can see, so
+        // the list updates live as apps start or stop making sound.
+        for (_, processObjectID) in candidates {
+            guard let processObjectID, !observedProcessObjectIDs.contains(processObjectID) else { continue }
+            observedProcessObjectIDs.insert(processObjectID)
+            CoreAudioController.addProcessRunningOutputListener(processObjectID, queue: listenerQueue) { [weak self] in
+                Task { @MainActor in self?.refreshAppList() }
+            }
+        }
+
+        items = candidates.compactMap { app, processObjectID -> AppAudioItem? in
             let pid = app.processIdentifier
+            let isBeingOverridden = engines[pid] != nil
+            let isPlaying = processObjectID.map(CoreAudioController.isProcessRunningOutput) ?? false
+            guard isPlaying || isBeingOverridden else { return nil }
+
             return AppAudioItem(
                 pid: pid,
                 name: app.localizedName ?? "Unknown",

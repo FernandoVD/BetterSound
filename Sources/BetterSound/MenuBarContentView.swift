@@ -1,90 +1,94 @@
 import SwiftUI
 
-/// Explicit VStack layout, not Form/List: a MenuBarExtra(.window) popover has
-/// no real hosting window frame, and Form/List's auto-sizing collapses badly
-/// inside one. Section "cards" use system semantic materials (`.quaternary`)
-/// so they still adapt correctly to Light/Dark and the Tahoe Clear/Tinted
-/// appearance styles, without depending on Form's layout machinery.
+/// Matches Apple's own Control Center Sound module directly: bold section
+/// title, a custom pill slider (see PillSlider.swift), device rows with a
+/// circular icon badge tinted green when active (no trailing checkmark), and
+/// no boxed "card" backgrounds — everything just sits on the popover's own
+/// vibrant background with dividers between sections.
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionCard("Sound") {
-                HStack(spacing: 10) {
-                    Button {
-                        audio.toggleMute()
-                    } label: {
-                        Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.fill")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 16)
-                    }
-                    .buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: 14) {
+            volumeSection
+            Divider()
+            outputSection
 
-                    Slider(
-                        value: Binding(
-                            get: { audio.isMuted ? 0 : audio.masterVolume },
-                            set: { audio.setMasterVolume($0) }
-                        ),
-                        in: 0...1
-                    )
-
-                    Image(systemName: "speaker.wave.3.fill")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 16)
-                }
+            if !apps.items.isEmpty {
+                Divider()
+                appsSection
             }
+        }
+        .padding(16)
+        .frame(width: 300)
+    }
 
-            sectionCard("Output") {
-                if audio.devices.isEmpty {
-                    Text("No output devices found")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                } else {
-                    VStack(spacing: 2) {
-                        ForEach(audio.devices) { device in
-                            DeviceRow(device: device, isSelected: device.id == audio.defaultDeviceID) {
-                                audio.selectDevice(device)
-                            }
-                        }
-                    }
+    // MARK: - Master volume
+
+    private var volumeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Sound")
+                .font(.system(size: 18, weight: .bold))
+
+            HStack(spacing: 10) {
+                Button {
+                    audio.toggleMute()
+                } label: {
+                    Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.primary)
+                        .frame(width: 20)
                 }
-            }
+                .buttonStyle(.plain)
 
-            sectionCard("Applications") {
-                if apps.items.isEmpty {
-                    Text("No open applications")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                } else {
-                    VStack(spacing: 14) {
-                        ForEach(apps.items) { item in
-                            AppVolumeRow(item: item, devices: audio.devices)
-                        }
+                PillSlider(value: Binding(
+                    get: { audio.isMuted ? 0 : audio.masterVolume },
+                    set: { audio.setMasterVolume($0) }
+                ))
+
+                Image(systemName: "speaker.wave.3.fill")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.primary)
+                    .frame(width: 20)
+            }
+        }
+    }
+
+    // MARK: - Output devices
+
+    private var outputSection: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Output")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 2)
+
+            if audio.devices.isEmpty {
+                Text("No output devices found")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(audio.devices) { device in
+                    DeviceRow(device: device, isSelected: device.id == audio.defaultDeviceID) {
+                        audio.selectDevice(device)
                     }
                 }
             }
         }
-        .padding(14)
-        .frame(width: 320)
     }
 
-    @ViewBuilder
-    private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title.uppercased())
-                .font(.caption2)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 2)
+    // MARK: - Per-app volume
 
-            VStack(alignment: .leading, spacing: 6) {
-                content()
+    private var appsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Applications")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            ForEach(apps.items) { item in
+                AppVolumeRow(item: item, devices: audio.devices)
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
     }
 }
@@ -96,27 +100,27 @@ private struct DeviceRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: device.kind.symbolName)
-                    .frame(width: 18)
-                    .foregroundStyle(isSelected ? Color.accentColor : .primary)
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(.quaternary)
+                        .frame(width: 32, height: 32)
+                    Image(systemName: device.kind.symbolName)
+                        .font(.system(size: 14))
+                        .foregroundStyle(isSelected ? Color.green : Color.primary)
+                }
 
                 Text(device.name)
-                    .font(.callout)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
-                }
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.vertical, 3)
+        .padding(.vertical, 4)
     }
 }
 
@@ -127,14 +131,15 @@ private struct AppVolumeRow: View {
     @EnvironmentObject private var apps: PerAppAudioController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
                 appIcon
                     .resizable()
-                    .frame(width: 16, height: 16)
+                    .frame(width: 20, height: 20)
+                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
 
                 Text(item.name)
-                    .font(.callout)
+                    .font(.system(size: 14))
                     .lineLimit(1)
 
                 Spacer()
@@ -142,14 +147,13 @@ private struct AppVolumeRow: View {
                 outputMenu
             }
 
-            Slider(
+            PillSlider(
                 value: Binding(
                     get: { item.volume },
                     set: { apps.setVolume($0, for: item) }
                 ),
-                in: 0...1
+                height: 20
             )
-            .padding(.leading, 24)
         }
     }
 

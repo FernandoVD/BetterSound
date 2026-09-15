@@ -281,6 +281,47 @@ enum CoreAudioController {
         return nil
     }
 
+    /// True if this process currently has an active output audio stream —
+    /// i.e. it's actually making sound right now, not just running.
+    static func isProcessRunningOutput(_ processObjectID: AudioObjectID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioProcessPropertyIsRunningOutput,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(processObjectID, &address) else { return false }
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(processObjectID, &address, 0, nil, &size, &value) == noErr else { return false }
+        return value != 0
+    }
+
+    /// Notified when a process starts/stops making sound, so the per-app list
+    /// can update live without polling.
+    static func addProcessRunningOutputListener(_ processObjectID: AudioObjectID, queue: DispatchQueue, _ handler: @escaping () -> Void) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioProcessPropertyIsRunningOutput,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectAddPropertyListenerBlock(processObjectID, &address, queue) { _, _ in
+            handler()
+        }
+    }
+
+    /// Notified when the set of audio-capable processes changes (an app makes
+    /// sound for the first time, or its process object goes away).
+    static func addProcessListListener(queue: DispatchQueue, _ handler: @escaping () -> Void) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyProcessObjectList,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, queue) { _, _ in
+            handler()
+        }
+    }
+
     // MARK: - Direct device I/O (for the per-app render engine)
 
     @discardableResult
