@@ -13,8 +13,13 @@ import Foundation
 final class ProcessTapEngine {
     private let pid: pid_t
     private let name: String
+    /// The actual gain applied in the render callback — 0 while muted,
+    /// regardless of `storedVolume`, so unmuting restores the prior level.
     private let gain = AtomicFloat(1.0)
     private let ringBuffer = RingBuffer(capacityFrames: 48_000, channels: 2)
+
+    private var storedVolume: Float = 1.0
+    private var isMuted = false
 
     private var tapID: AudioObjectID = 0
     private var aggregateID: AudioObjectID = 0
@@ -23,8 +28,23 @@ final class ProcessTapEngine {
     private var activeOutputDeviceID: AudioDeviceID?
 
     var volume: Float {
-        get { gain.value }
-        set { gain.value = max(0, min(1, newValue)) }
+        get { storedVolume }
+        set {
+            storedVolume = max(0, min(1, newValue))
+            applyGain()
+        }
+    }
+
+    var muted: Bool {
+        get { isMuted }
+        set {
+            isMuted = newValue
+            applyGain()
+        }
+    }
+
+    private func applyGain() {
+        gain.value = isMuted ? 0 : storedVolume
     }
 
     /// nil means "follow the system default output device".

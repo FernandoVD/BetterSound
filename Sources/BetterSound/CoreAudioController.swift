@@ -321,6 +321,32 @@ enum CoreAudioController {
         return status == noErr
     }
 
+    static func isInputMuted(_ id: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyMute,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(id, &address) else { return false }
+        var muted: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        AudioObjectGetPropertyData(id, &address, 0, nil, &size, &muted)
+        return muted != 0
+    }
+
+    @discardableResult
+    static func setInputMuted(_ id: AudioDeviceID, _ muted: Bool) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyMute,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(id, &address) else { return false }
+        var value: UInt32 = muted ? 1 : 0
+        let status = AudioObjectSetPropertyData(id, &address, 0, nil, UInt32(MemoryLayout<UInt32>.size), &value)
+        return status == noErr
+    }
+
     // MARK: - Change listeners
 
     /// Registers a listener on the system object for default-output-device and device-list changes.
@@ -352,15 +378,17 @@ enum CoreAudioController {
         }
     }
 
-    /// Registers a listener for input-volume changes on a specific device.
+    /// Registers a listener for input volume/mute changes on a specific device.
     static func addInputDeviceListener(_ id: AudioDeviceID, queue: DispatchQueue, _ handler: @escaping () -> Void) {
-        var address = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwareServiceDeviceProperty_VirtualMainVolume,
-            mScope: kAudioDevicePropertyScopeInput,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        AudioObjectAddPropertyListenerBlock(id, &address, queue) { _, _ in
-            handler()
+        for selector in [kAudioHardwareServiceDeviceProperty_VirtualMainVolume, kAudioDevicePropertyMute] {
+            var address = AudioObjectPropertyAddress(
+                mSelector: selector,
+                mScope: kAudioDevicePropertyScopeInput,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            AudioObjectAddPropertyListenerBlock(id, &address, queue) { _, _ in
+                handler()
+            }
         }
     }
 

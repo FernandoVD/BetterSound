@@ -152,13 +152,18 @@ struct MenuBarContentView: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary)
-                    .frame(width: 16)
+                Button {
+                    audio.toggleInputMute()
+                } label: {
+                    Image(systemName: audio.isInputMuted ? "mic.slash.fill" : "mic.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.primary)
+                        .frame(width: 16)
+                }
+                .buttonStyle(.plain)
 
                 PillSlider(value: Binding(
-                    get: { audio.inputVolume },
+                    get: { audio.isInputMuted ? 0 : audio.inputVolume },
                     set: { audio.setInputVolume($0) }
                 ), height: 20)
 
@@ -230,13 +235,25 @@ private struct AppVolumeRow: View {
                 outputMenu
             }
 
-            PillSlider(
-                value: Binding(
-                    get: { item.volume },
-                    set: { apps.setVolume($0, for: item) }
-                ),
-                height: 12
-            )
+            HStack(spacing: 8) {
+                Button {
+                    apps.toggleMute(for: item)
+                } label: {
+                    Image(systemName: item.isMuted ? "speaker.slash.fill" : "speaker.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16)
+                }
+                .buttonStyle(.plain)
+
+                PillSlider(
+                    value: Binding(
+                        get: { item.isMuted ? 0 : item.volume },
+                        set: { apps.setVolume($0, for: item) }
+                    ),
+                    height: 12
+                )
+            }
         }
     }
 

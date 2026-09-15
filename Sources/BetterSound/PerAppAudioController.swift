@@ -8,6 +8,7 @@ struct AppAudioItem: Identifiable {
     let name: String
     let icon: NSImage?
     var volume: Float
+    var isMuted: Bool
     /// nil means "follow whatever the system default output device is".
     var outputDeviceID: AudioDeviceID?
 }
@@ -74,6 +75,7 @@ final class PerAppAudioController: ObservableObject {
                 name: app.localizedName ?? "Unknown",
                 icon: app.icon,
                 volume: engines[pid]?.volume ?? 1.0,
+                isMuted: engines[pid]?.muted ?? false,
                 outputDeviceID: engines[pid]?.outputDeviceID
             )
         }
@@ -82,6 +84,7 @@ final class PerAppAudioController: ObservableObject {
 
     func setVolume(_ volume: Float, for item: AppAudioItem) {
         let clamped = max(0, min(1, volume))
+        let shouldUnmute = clamped > 0 && (engines[item.pid]?.muted ?? false)
 
         // A drag fires this dozens of times a second. Update the visible row
         // in place — cheap — instead of calling refreshAppList(), which
@@ -89,14 +92,35 @@ final class PerAppAudioController: ObservableObject {
         // every single tick; that full rebuild was what made dragging choppy.
         if let index = items.firstIndex(where: { $0.pid == item.pid }) {
             items[index].volume = clamped
+            if shouldUnmute { items[index].isMuted = false }
         }
 
         if let engine = engines[item.pid] {
             engine.volume = clamped
+            if shouldUnmute { engine.muted = false }
             retireIfIdle(item.pid)
         } else if clamped < 0.999 {
             let engine = ProcessTapEngine(pid: item.pid, name: item.name)
             engine.volume = clamped
+            if engine.start() {
+                engines[item.pid] = engine
+            }
+        }
+    }
+
+    func toggleMute(for item: AppAudioItem) {
+        let newMuted = !(engines[item.pid]?.muted ?? false)
+
+        if let index = items.firstIndex(where: { $0.pid == item.pid }) {
+            items[index].isMuted = newMuted
+        }
+
+        if let engine = engines[item.pid] {
+            engine.muted = newMuted
+            retireIfIdle(item.pid)
+        } else if newMuted {
+            let engine = ProcessTapEngine(pid: item.pid, name: item.name)
+            engine.muted = true
             if engine.start() {
                 engines[item.pid] = engine
             }
@@ -117,11 +141,12 @@ final class PerAppAudioController: ObservableObject {
         refreshAppList()
     }
 
-    /// Once volume is back to 1.0 and output is back to "default", the engine
-    /// has nothing left to override — tear it down so the app just plays normally.
+    /// Once volume is back to 1.0, output is back to "default", and it's not
+    /// muted, the engine has nothing left to override — tear it down so the
+    /// app just plays normally.
     private func retireIfIdle(_ pid: pid_t) {
         guard let engine = engines[pid] else { return }
-        if engine.volume >= 0.999 && engine.outputDeviceID == nil {
+        if engine.volume >= 0.999 && engine.outputDeviceID == nil && !engine.muted {
             engine.stop()
             engines.removeValue(forKey: pid)
         }
