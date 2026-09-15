@@ -6,9 +6,16 @@ import SwiftUI
 /// jump straight to a position. SwiftUI's stock `Slider` doesn't render this
 /// way on macOS, which is why it looked "not native" — this is a from-scratch
 /// replica of the real control instead of an approximation of one.
+///
+/// `useGlass` defaults to true, but per Apple's Liquid Glass guidance
+/// ("limit these effects to the most important functional elements... avoid
+/// overusing Liquid Glass... in multiple custom controls"), only the
+/// primary sliders (master Sound, Input) should use it — pass `false` for
+/// secondary/repeated controls like a per-app row, of which there can be many.
 struct PillSlider: View {
     @Binding var value: Float
     var height: CGFloat = 20
+    var useGlass: Bool = true
 
     @Environment(\.isEnabled) private var isEnabled
 
@@ -18,9 +25,14 @@ struct PillSlider: View {
             let fillWidth = max(height, width * CGFloat(value))
 
             ZStack(alignment: .leading) {
-                Capsule(style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.regular, in: .capsule)
+                if useGlass {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.regular, in: .capsule)
+                } else {
+                    Capsule(style: .continuous)
+                        .fill(.quaternary)
+                }
 
                 Capsule(style: .continuous)
                     .fill(.primary.opacity(0.85))

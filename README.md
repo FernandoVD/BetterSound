@@ -164,8 +164,15 @@ its Dock icon and behaves as a normal menu bar app).
   (`NSWorkspace`) and lazily owning one `ProcessTapEngine` per app that's
   actually been touched (volume ≠ 100% or output overridden)
 - `PillSlider.swift` — from-scratch capsule slider (the stock SwiftUI `Slider`
-  doesn't render like Control Center's own); its track uses real Liquid Glass
-  (`.glassEffect`), the fill is a solid capsule that IS the thumb
+  doesn't render like Control Center's own); the fill is a solid capsule that
+  IS the thumb. Its track uses real Liquid Glass (`.glassEffect`) only when
+  `useGlass` is true (the default) — per [Apple's Liquid Glass adoption
+  guide](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass),
+  which explicitly warns against overusing the effect "in multiple custom
+  controls," only the master Sound and Input sliders use it; per-app rows
+  (of which there can be many) pass `useGlass: false` for a plain track. The
+  two glass sliders share one `GlassEffectContainer` in
+  `MenuBarContentView`, per the same guide's performance guidance.
 - `MenuBarContentView.swift` / `AboutView.swift` / `SettingsView.swift` — SwiftUI UI
 - `LoginItemManager.swift` — thin wrapper around `ServiceManagement.SMAppService`
 - `UpdateChecker.swift` — polls the GitHub Releases API for a newer tag; no
