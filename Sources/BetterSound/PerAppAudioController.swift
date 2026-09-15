@@ -14,8 +14,14 @@ struct AppAudioItem: Identifiable {
 
 @MainActor
 final class PerAppAudioController: ObservableObject {
-    /// Every open, regular (Dock-visible) app — always shown, whether or not
-    /// it's making sound right now.
+    /// Open, regular (Dock-visible) apps that have ever registered an audio
+    /// process with CoreAudio — i.e. apps that can make noise, not
+    /// necessarily ones making noise right this second. Excludes apps like
+    /// Finder or System Settings that never touch the audio subsystem at
+    /// all, while still showing something like the App Store the first time
+    /// it plays a sound, and keeping it listed afterward (registration is
+    /// stable for the life of the process, so this doesn't flicker the way
+    /// "is it playing audio right now" would).
     @Published private(set) var items: [AppAudioItem] = []
 
     private var engines: [pid_t: ProcessTapEngine] = [:]
@@ -36,6 +42,9 @@ final class PerAppAudioController: ObservableObject {
         CoreAudioController.addSystemListener(queue: listenerQueue) { [weak self] in
             Task { @MainActor in self?.defaultOutputDeviceChanged() }
         }
+        CoreAudioController.addProcessListListener(queue: listenerQueue) { [weak self] in
+            Task { @MainActor in self?.refreshAppList() }
+        }
     }
 
     deinit {
@@ -55,8 +64,11 @@ final class PerAppAudioController: ObservableObject {
             engines.removeValue(forKey: pid)
         }
 
-        items = running.map { app in
+        items = running.compactMap { app -> AppAudioItem? in
             let pid = app.processIdentifier
+            let isAudioCapable = CoreAudioController.audioProcessObjectID(forPID: pid) != nil
+            guard isAudioCapable || engines[pid] != nil else { return nil }
+
             return AppAudioItem(
                 pid: pid,
                 name: app.localizedName ?? "Unknown",

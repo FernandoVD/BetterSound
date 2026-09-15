@@ -398,6 +398,23 @@ enum CoreAudioController {
         return nil
     }
 
+    /// Notified when the set of audio-capable processes changes — an app
+    /// registers with the HAL the first time it opens any audio stream
+    /// (even a single UI sound effect), and that registration is stable for
+    /// the life of the process, not tied to whether it's making noise this
+    /// instant. That's what makes this a good signal for "can this app make
+    /// noise" without the list flickering in and out as audio starts/stops.
+    static func addProcessListListener(queue: DispatchQueue, _ handler: @escaping () -> Void) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyProcessObjectList,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, queue) { _, _ in
+            handler()
+        }
+    }
+
     // MARK: - Direct device I/O (for the per-app render engine)
 
     @discardableResult
