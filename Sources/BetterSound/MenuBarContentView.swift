@@ -337,14 +337,16 @@ private struct AppVolumeRow: View {
 
     private var outputMenu: some View {
         Menu {
+            // NSMenu items can only show plain text + a small monochrome
+            // icon — the colored circular badge from the expanded Output/
+            // Input lists isn't possible inside a native menu, but a
+            // per-device icon here still beats plain text.
             Button {
                 apps.setOutputDevice(nil, for: item)
             } label: {
-                HStack {
-                    Text("Default")
-                    if item.outputDeviceID == nil {
-                        Image(systemName: "checkmark")
-                    }
+                Label("Default", systemImage: "arrow.triangle.branch")
+                if item.outputDeviceID == nil {
+                    Image(systemName: "checkmark")
                 }
             }
 
@@ -352,11 +354,9 @@ private struct AppVolumeRow: View {
                 Button {
                     apps.setOutputDevice(device.id, for: item)
                 } label: {
-                    HStack {
-                        Text(device.name)
-                        if item.outputDeviceID == device.id {
-                            Image(systemName: "checkmark")
-                        }
+                    Label(device.name, systemImage: device.kind.symbolName)
+                    if item.outputDeviceID == device.id {
+                        Image(systemName: "checkmark")
                     }
                 }
             }
