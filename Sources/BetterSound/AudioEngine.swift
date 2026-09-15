@@ -136,7 +136,12 @@ final class AudioEngine: ObservableObject {
     func setInputVolume(_ volume: Float) {
         guard let current = defaultInputDeviceID else { return }
         inputVolume = volume // instant visual feedback, cheap
-        if volume > 0, isInputMuted {
+
+        // Same reasoning as setMasterVolume: 0% should look and behave like
+        // mute, not just display the same number.
+        if volume <= 0, !isInputMuted {
+            setInputMuted(true)
+        } else if volume > 0, isInputMuted {
             setInputMuted(false)
         }
 

@@ -84,7 +84,11 @@ final class PerAppAudioController: ObservableObject {
 
     func setVolume(_ volume: Float, for item: AppAudioItem) {
         let clamped = max(0, min(1, volume))
-        let shouldUnmute = clamped > 0 && (engines[item.pid]?.muted ?? false)
+        let currentlyMuted = engines[item.pid]?.muted ?? false
+        // Same reasoning as the master/Input sliders: 0% should look and
+        // behave like mute (icon included), not just display the same number.
+        let shouldMute = clamped <= 0 && !currentlyMuted
+        let shouldUnmute = clamped > 0 && currentlyMuted
 
         // A drag fires this dozens of times a second. Update the visible row
         // in place — cheap — instead of calling refreshAppList(), which
@@ -92,16 +96,19 @@ final class PerAppAudioController: ObservableObject {
         // every single tick; that full rebuild was what made dragging choppy.
         if let index = items.firstIndex(where: { $0.pid == item.pid }) {
             items[index].volume = clamped
+            if shouldMute { items[index].isMuted = true }
             if shouldUnmute { items[index].isMuted = false }
         }
 
         if let engine = engines[item.pid] {
             engine.volume = clamped
+            if shouldMute { engine.muted = true }
             if shouldUnmute { engine.muted = false }
             retireIfIdle(item.pid)
         } else if clamped < 0.999 {
             let engine = ProcessTapEngine(pid: item.pid, name: item.name)
             engine.volume = clamped
+            if shouldMute { engine.muted = true }
             if engine.start() {
                 engines[item.pid] = engine
             }
