@@ -28,13 +28,19 @@ struct MenuBarContentView: View {
             Divider()
 
             if let update = updates.availableUpdate {
-                Link(destination: update.htmlURL) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.up.circle.fill")
-                        Text("Update available: v\(update.version)")
+                VStack(alignment: .leading, spacing: 4) {
+                    Link(destination: update.htmlURL) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.up.circle.fill")
+                            Text("Update available: v\(update.version)")
+                        }
                     }
+                    .font(.system(size: 12, weight: .semibold))
+
+                    // brew install a second time silently does nothing —
+                    // give the actual upgrade command, not just a link.
+                    CopyableCommand(command: "brew upgrade --cask bettersound")
                 }
-                .font(.system(size: 12, weight: .semibold))
             }
 
             Button("BetterSound Settings…") {

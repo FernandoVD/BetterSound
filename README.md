@@ -38,11 +38,15 @@ directly and only wakes up when a property actually changes.
 
 Settings → **Check for Updates…**, or toggle **Automatically check for
 updates** for a daily background check. Either way this only tells you a
-newer version exists and links to the release — it does not silently
-download or install anything. (This build isn't notarized, so an
-auto-downloaded update would hit the same Gatekeeper quarantine block as a
-manual download anyway; a real silent updater isn't worth building until
-that's solved.)
+newer version exists — it does not silently download or install anything.
+(This build isn't notarized, so an auto-downloaded update would hit the
+same Gatekeeper quarantine block as a manual download anyway; a real silent
+updater isn't worth building until that's solved.)
+
+The popover's "Update available" link and the same line in Settings both
+show the exact command to run (`brew upgrade --cask bettersound`) with a
+one-click copy button, specifically because `brew install` a second time
+silently does nothing — see [Updating](#updating) above.
 
 ## Installation
 
@@ -56,6 +60,29 @@ brew install --cask bettersound
 ### Manual download
 
 Grab `BetterSound.zip` from the [latest release](https://github.com/FernandoVD/BetterSound/releases/latest), unzip it, and move `BetterSound.app` to `/Applications`.
+
+### Updating
+
+> [!IMPORTANT]
+> `brew install --cask bettersound` again does **not** update an existing
+> install — Homebrew just prints "the latest version is already installed"
+> and does nothing, even when it isn't. Running `install` a second time is
+> the single most common way people end up stuck on an old version.
+
+To actually update:
+
+```bash
+brew update && brew upgrade --cask bettersound
+```
+
+`brew update` refreshes the tap so Homebrew knows a newer version exists;
+`brew upgrade --cask bettersound` is what installs it. (Bare `brew upgrade`
+with no argument updates everything you have installed via Homebrew,
+BetterSound included.)
+
+If you installed manually, updating means repeating the manual-download
+step above with the new zip — there's no separate "update" step for that
+path.
 
 Either way, this build is **ad-hoc signed, not notarized** — no paid Apple
 Developer account behind this project — so on first launch Gatekeeper will

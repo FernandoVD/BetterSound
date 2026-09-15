@@ -58,9 +58,15 @@ struct SettingsView: View {
                     }
 
                     if let update = updates.availableUpdate {
-                        Link(destination: update.htmlURL) {
-                            Label("Update available: v\(update.version)", systemImage: "arrow.up.circle.fill")
-                                .foregroundStyle(Color.accentColor)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Link(destination: update.htmlURL) {
+                                Label("Update available: v\(update.version)", systemImage: "arrow.up.circle.fill")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+
+                            // brew install a second time silently does
+                            // nothing — give the actual upgrade command.
+                            CopyableCommand(command: "brew upgrade --cask bettersound")
                         }
                     } else if updates.checkFailed {
                         Label("Couldn't check for updates", systemImage: "exclamationmark.triangle")

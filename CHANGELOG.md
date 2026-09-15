@@ -2,6 +2,20 @@
 
 All notable changes to BetterSound are documented here.
 
+## [1.1.1] - 2026-09-15
+
+### Added
+- The "Update available" prompt (popover and Settings) now shows the exact
+  `brew upgrade --cask bettersound` command with a one-click copy button,
+  instead of just linking to the release page.
+
+### Fixed
+- Documented (README's new [Updating](README.md#updating) section) that
+  running `brew install --cask bettersound` again does **not** update an
+  existing install — Homebrew silently says "the latest version is already
+  installed" even when it isn't. `brew upgrade --cask bettersound` is the
+  actual update command.
+
 ## [1.1.0] - 2026-09-15
 
 ### Added
