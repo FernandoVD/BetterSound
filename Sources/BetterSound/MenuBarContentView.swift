@@ -1,152 +1,76 @@
 import SwiftUI
 
-/// Styled to sit next to Control Center's own Sound module: a floating rounded
-/// panel, a master slider up top, the output picker below, then per-app volume.
-/// About/Settings live in the app's own menu (top-left, next to the Apple menu)
-/// instead of cluttering this popover — this stays audio-controls-only.
+/// Built from SwiftUI's native grouped Form — the same building block System
+/// Settings.app itself uses — so it automatically matches whatever appearance
+/// mode is active (Light/Dark, and the Tahoe Icon & Window styles like Clear
+/// or Tinted) without us hand-drawing any of it.
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            volumeSection
-            Divider()
-            outputSection
-            Divider()
-            appsSection
-        }
-        .padding(14)
-        .frame(width: 300)
-    }
+        Form {
+            Section("Sound") {
+                HStack(spacing: 10) {
+                    Button {
+                        audio.toggleMute()
+                    } label: {
+                        Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
 
-    // MARK: - Master volume
+                    Slider(
+                        value: Binding(
+                            get: { audio.isMuted ? 0 : audio.masterVolume },
+                            set: { audio.setMasterVolume($0) }
+                        ),
+                        in: 0...1
+                    )
 
-    private var volumeSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Sound")
-                .font(.headline)
-
-            HStack(spacing: 10) {
-                Button {
-                    audio.toggleMute()
-                } label: {
-                    Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.fill")
-                        .font(.system(size: 13))
-                        .frame(width: 16)
+                    Image(systemName: "speaker.wave.3.fill")
                         .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
-
-                Slider(
-                    value: Binding(
-                        get: { audio.isMuted ? 0 : audio.masterVolume },
-                        set: { audio.setMasterVolume($0) }
-                    ),
-                    in: 0...1
-                )
-
-                Image(systemName: "speaker.wave.3.fill")
-                    .font(.system(size: 13))
-                    .frame(width: 16)
-                    .foregroundStyle(.secondary)
             }
-        }
-    }
 
-    // MARK: - Output devices
-
-    private var outputSection: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Output")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-                .padding(.bottom, 2)
-
-            if audio.devices.isEmpty {
-                Text("No output devices found")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
-            } else {
-                ForEach(audio.devices) { device in
-                    DeviceRow(device: device, isSelected: device.id == audio.defaultDeviceID) {
-                        audio.selectDevice(device)
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Per-app volume
-
-    private var appsSection: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Applications")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-                .padding(.bottom, 2)
-
-            if apps.items.isEmpty {
-                Text("No open applications")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
-            } else {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(apps.items) { item in
-                            AppVolumeRow(item: item, devices: audio.devices)
+            Section("Output") {
+                if audio.devices.isEmpty {
+                    Text("No output devices found")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(audio.devices) { device in
+                        Button {
+                            audio.selectDevice(device)
+                        } label: {
+                            HStack {
+                                Label(device.name, systemImage: device.kind.symbolName)
+                                Spacer()
+                                if device.id == audio.defaultDeviceID {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 4)
-                }
-                .frame(maxHeight: 220)
-            }
-        }
-    }
-}
-
-private struct DeviceRow: View {
-    let device: AudioDevice
-    let isSelected: Bool
-    let action: () -> Void
-
-    @State private var isHovering = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: device.kind.symbolName)
-                    .font(.system(size: 13))
-                    .frame(width: 18)
-                    .foregroundStyle(isSelected ? Color.accentColor : .primary)
-
-                Text(device.name)
-                    .font(.callout)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
                 }
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 5)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isHovering ? Color.primary.opacity(0.08) : .clear)
-            )
-            .contentShape(Rectangle())
+
+            Section("Applications") {
+                if apps.items.isEmpty {
+                    Text("No open applications")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(apps.items) { item in
+                        AppVolumeRow(item: item, devices: audio.devices)
+                    }
+                }
+            }
         }
-        .buttonStyle(.plain)
-        .onHover { isHovering = $0 }
+        .formStyle(.grouped)
+        .frame(width: 340)
+        .frame(maxHeight: 560)
     }
 }
 
@@ -157,30 +81,36 @@ private struct AppVolumeRow: View {
     @EnvironmentObject private var apps: PerAppAudioController
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                appIcon
-                    .resizable()
-                    .frame(width: 16, height: 16)
-
-                Text(item.name)
-                    .font(.callout)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Label {
+                    Text(item.name).lineLimit(1)
+                } icon: {
+                    appIcon
+                        .resizable()
+                        .frame(width: 18, height: 18)
+                }
 
                 Spacer()
 
                 outputMenu
             }
 
-            Slider(
-                value: Binding(
-                    get: { item.volume },
-                    set: { apps.setVolume($0, for: item) }
-                ),
-                in: 0...1
-            )
-            .padding(.leading, 24)
+            HStack(spacing: 8) {
+                Image(systemName: "speaker.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Slider(
+                    value: Binding(
+                        get: { item.volume },
+                        set: { apps.setVolume($0, for: item) }
+                    ),
+                    in: 0...1
+                )
+            }
         }
+        .padding(.vertical, 2)
     }
 
     private var appIcon: Image {
@@ -217,11 +147,10 @@ private struct AppVolumeRow: View {
             }
         } label: {
             Image(systemName: outputIconName)
-                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
         }
         .menuStyle(.borderlessButton)
-        .frame(width: 20)
+        .frame(width: 24)
     }
 
     private var outputIconName: String {

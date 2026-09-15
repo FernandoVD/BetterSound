@@ -6,23 +6,29 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Toggle("Show icon in Dock", isOn: Binding(
-                get: { showDockIcon },
-                set: { newValue in
-                    showDockIcon = newValue
-                    NSApp.setActivationPolicy(newValue ? .regular : .accessory)
+            Section {
+                Toggle(isOn: Binding(
+                    get: { showDockIcon },
+                    set: { newValue in
+                        showDockIcon = newValue
+                        NSApp.setActivationPolicy(newValue ? .regular : .accessory)
+                    }
+                )) {
+                    Label("Show icon in Dock", systemImage: "dock.rectangle")
                 }
-            ))
 
-            Toggle("Launch at login", isOn: Binding(
-                get: { launchAtLogin },
-                set: { newValue in
-                    launchAtLogin = newValue
-                    LoginItemManager.setEnabled(newValue)
+                Toggle(isOn: Binding(
+                    get: { launchAtLogin },
+                    set: { newValue in
+                        launchAtLogin = newValue
+                        LoginItemManager.setEnabled(newValue)
+                    }
+                )) {
+                    Label("Launch at login", systemImage: "power")
                 }
-            ))
+            }
         }
-        .padding(20)
-        .frame(width: 320)
+        .formStyle(.grouped)
+        .frame(width: 360, height: 160)
     }
 }
