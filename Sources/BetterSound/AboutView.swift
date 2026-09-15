@@ -24,8 +24,14 @@ struct AboutView: View {
 
             Spacer().frame(height: 14)
 
-            Link("Created in 2026 by FernandoVD", destination: URL(string: "https://github.com/FernandoVD")!)
-                .font(.system(size: 12))
+            HStack(spacing: 4) {
+                Text("Created by")
+                    .foregroundStyle(.secondary)
+                Link("FernandoVD", destination: URL(string: "https://github.com/FernandoVD")!)
+                Text("· 2026")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.system(size: 12))
 
             Link("View source on GitHub", destination: URL(string: "https://github.com/FernandoVD/BetterSound")!)
                 .font(.system(size: 11))
