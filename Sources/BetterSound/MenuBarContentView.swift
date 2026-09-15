@@ -1,22 +1,24 @@
 import SwiftUI
 
-/// Built from SwiftUI's native grouped Form — the same building block System
-/// Settings.app itself uses — so it automatically matches whatever appearance
-/// mode is active (Light/Dark, and the Tahoe Icon & Window styles like Clear
-/// or Tinted) without us hand-drawing any of it.
+/// Explicit VStack layout, not Form/List: a MenuBarExtra(.window) popover has
+/// no real hosting window frame, and Form/List's auto-sizing collapses badly
+/// inside one. Section "cards" use system semantic materials (`.quaternary`)
+/// so they still adapt correctly to Light/Dark and the Tahoe Clear/Tinted
+/// appearance styles, without depending on Form's layout machinery.
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
 
     var body: some View {
-        Form {
-            Section("Sound") {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionCard("Sound") {
                 HStack(spacing: 10) {
                     Button {
                         audio.toggleMute()
                     } label: {
                         Image(systemName: audio.isMuted ? "speaker.slash.fill" : "speaker.fill")
                             .foregroundStyle(.secondary)
+                            .frame(width: 16)
                     }
                     .buttonStyle(.plain)
 
@@ -30,47 +32,91 @@ struct MenuBarContentView: View {
 
                     Image(systemName: "speaker.wave.3.fill")
                         .foregroundStyle(.secondary)
+                        .frame(width: 16)
                 }
             }
 
-            Section("Output") {
+            sectionCard("Output") {
                 if audio.devices.isEmpty {
                     Text("No output devices found")
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(audio.devices) { device in
-                        Button {
-                            audio.selectDevice(device)
-                        } label: {
-                            HStack {
-                                Label(device.name, systemImage: device.kind.symbolName)
-                                Spacer()
-                                if device.id == audio.defaultDeviceID {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(Color.accentColor)
-                                }
+                    VStack(spacing: 2) {
+                        ForEach(audio.devices) { device in
+                            DeviceRow(device: device, isSelected: device.id == audio.defaultDeviceID) {
+                                audio.selectDevice(device)
                             }
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
 
-            Section("Applications") {
+            sectionCard("Applications") {
                 if apps.items.isEmpty {
                     Text("No open applications")
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(apps.items) { item in
-                        AppVolumeRow(item: item, devices: audio.devices)
+                    VStack(spacing: 14) {
+                        ForEach(apps.items) { item in
+                            AppVolumeRow(item: item, devices: audio.devices)
+                        }
                     }
                 }
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 340)
-        .frame(maxHeight: 560)
+        .padding(14)
+        .frame(width: 320)
+    }
+
+    @ViewBuilder
+    private func sectionCard<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 2)
+
+            VStack(alignment: .leading, spacing: 6) {
+                content()
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+}
+
+private struct DeviceRow: View {
+    let device: AudioDevice
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: device.kind.symbolName)
+                    .frame(width: 18)
+                    .foregroundStyle(isSelected ? Color.accentColor : .primary)
+
+                Text(device.name)
+                    .font(.callout)
+                    .lineLimit(1)
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 3)
     }
 }
 
@@ -82,35 +128,29 @@ private struct AppVolumeRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label {
-                    Text(item.name).lineLimit(1)
-                } icon: {
-                    appIcon
-                        .resizable()
-                        .frame(width: 18, height: 18)
-                }
+            HStack(spacing: 8) {
+                appIcon
+                    .resizable()
+                    .frame(width: 16, height: 16)
+
+                Text(item.name)
+                    .font(.callout)
+                    .lineLimit(1)
 
                 Spacer()
 
                 outputMenu
             }
 
-            HStack(spacing: 8) {
-                Image(systemName: "speaker.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Slider(
-                    value: Binding(
-                        get: { item.volume },
-                        set: { apps.setVolume($0, for: item) }
-                    ),
-                    in: 0...1
-                )
-            }
+            Slider(
+                value: Binding(
+                    get: { item.volume },
+                    set: { apps.setVolume($0, for: item) }
+                ),
+                in: 0...1
+            )
+            .padding(.leading, 24)
         }
-        .padding(.vertical, 2)
     }
 
     private var appIcon: Image {
@@ -147,10 +187,11 @@ private struct AppVolumeRow: View {
             }
         } label: {
             Image(systemName: outputIconName)
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
         }
         .menuStyle(.borderlessButton)
-        .frame(width: 24)
+        .frame(width: 20)
     }
 
     private var outputIconName: String {
