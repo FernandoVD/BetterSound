@@ -92,7 +92,17 @@ final class AudioEngine: ObservableObject {
     func setMasterVolume(_ volume: Float) {
         guard let current = defaultDeviceID else { return }
         masterVolume = volume // instant visual feedback, cheap
-        if volume > 0, isMuted {
+
+        // The volume scalar and the mute flag are separate CoreAudio
+        // properties — 0.0 volume scales the gain down but doesn't
+        // guarantee hardware silence the way the dedicated mute property
+        // does (this is exactly why Apple ships mute as its own control
+        // instead of just "slider at minimum"). Dragging to 0 should still
+        // mean silent, so engage real mute there and clear it once you
+        // drag back up.
+        if volume <= 0, !isMuted {
+            setMuted(true)
+        } else if volume > 0, isMuted {
             setMuted(false)
         }
 
