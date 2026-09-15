@@ -2,6 +2,48 @@
 
 All notable changes to BetterSound are documented here.
 
+## [1.2.0] - 2026-09-16
+
+### Added
+- Live percentage next to Sound, Input, and every per-app row (e.g. "72%"),
+  scaled down for secondary rows so it stays out of the way.
+- Output and Input device pickers: tapping the chevron now expands an
+  inline list of rich rows — circular icon badge, white background + green
+  icon when active — matching Control Center's own device list, instead of
+  a plain dropdown.
+- Per-device icons in the per-app output-routing menu (as rich as a native
+  `NSMenu` can render — no colored badge there, that's a hard platform
+  limit, not a choice).
+
+### Changed
+- **The master Sound slider now auto-mutes at 0%, and this now applies to
+  Input and every per-app slider too** — dragging any slider to 0 engages
+  real mute (icon included), instead of just displaying "0%" while a faint
+  amount of audio could still get through. The volume scalar and the mute
+  flag are genuinely separate CoreAudio properties; 0.0 volume doesn't
+  guarantee hardware silence the way mute does.
+- Input's slider is visibly smaller than Sound's — one control among
+  several, not the one authoritative "this is the volume" reading Sound
+  represents.
+- PillSlider is a thin track + a distinct round knob now, not a growing
+  filled bar — verified against real reference screenshots of the native
+  macOS/iOS slider. The knob turns to Liquid Glass, and the track fades
+  more translucent, only while actively dragging, matching a screenshot of
+  the real native slider mid-drag.
+- Icon sizing unified across Sound/Output/Input/Applications (explicit
+  16×16 frames everywhere) — Output and Input were previously only
+  width-constrained, letting icons render taller than the rest of the UI.
+
+### Fixed
+- The Output/Input chevron button's overlapping/garbled look: SwiftUI's
+  `Menu` adds its own automatic disclosure indicator on top of a custom
+  icon label unless explicitly suppressed, which was colliding with our
+  own chevron glyph.
+- An earlier attempt at the slider redesign had a real rendering bug where
+  a `glassEffect` track visibly cut a line through the knob — root-caused
+  to mixing a glass element with a plain sibling in the same ZStack, not
+  guessed at.
+
 ## [1.1.2] - 2026-09-15
 
 ### Added
