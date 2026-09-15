@@ -8,27 +8,41 @@ AirPods, USB/Bluetooth audio, etc.).
 No Dock icon, no background processes, no polling — it talks to CoreAudio
 directly and only wakes up when a property actually changes.
 
-## Features (v1)
+## Features
 
 - Menu bar icon that lives next to the battery/Wi-Fi/clock cluster
 - Master volume slider + mute, styled to match Control Center's Sound module
 - Output device switcher with automatic icons (speakers, headphones, AirPods,
-  USB, HDMI) and live updates when devices connect/disconnect
-- Input section: a general input-level slider plus a device picker (built-in
-  mic, USB mic, AirPods mic, etc.) — kept simple, no per-app input controls
-- **Per-app volume sliders**, one per running application, plus a per-app
-  output picker (send one app to AirPods while everything else stays on
-  speakers). macOS has no public "set this app's volume" API, so this works
-  by using Apple's Core Audio **Process Tap** API (macOS 14.2+) to mute the
-  app at the source and re-render its audio, scaled, straight to the chosen
-  output device — see [Architecture](#architecture). Engines are created
-  lazily: an app nobody touches costs nothing.
+  USB, HDMI) and live updates when devices connect/disconnect; devices that
+  can't actually be a system default (some virtual drivers) are left out
+- Input: a general input-level slider + mute, plus a device picker
+- **Per-app volume sliders and mute**, one per app that's ever registered
+  audio with CoreAudio (so Finder/System Settings don't show up, but
+  something like the App Store appears the moment it plays its first sound
+  and stays listed), plus a per-app output picker (send one app to AirPods
+  while everything else stays on speakers). macOS has no public "set this
+  app's volume" API, so this works by using Apple's Core Audio **Process
+  Tap** API (macOS 14.2+) to mute the app at the source and re-render its
+  audio, scaled, straight to the chosen output device — see
+  [Architecture](#architecture). Engines are created lazily: an app nobody
+  touches costs nothing.
 - App menu (top-left, next to the Apple menu) with **About BetterSound** and
   **Settings…**, the way a normal Mac app works — the popover itself stays
   audio-controls-only
-- Settings: show/hide the Dock icon, and "Launch at Login" (via
-  `SMAppService`, no LaunchAgent plist needed)
+- Settings: show/hide the Dock icon, "Launch at Login" (via `SMAppService`),
+  and update checking (manual "Check for Updates…" or an "Automatically
+  check for updates" toggle — see [Updates](#updates))
 - No Dock icon by default, no menu bar clutter beyond one icon
+
+## Updates
+
+Settings → **Check for Updates…**, or toggle **Automatically check for
+updates** for a daily background check. Either way this only tells you a
+newer version exists and links to the release — it does not silently
+download or install anything. (This build isn't notarized, so an
+auto-downloaded update would hit the same Gatekeeper quarantine block as a
+manual download anyway; a real silent updater isn't worth building until
+that's solved.)
 
 ## Installation
 
@@ -116,6 +130,10 @@ its Dock icon and behaves as a normal menu bar app).
   (`.glassEffect`), the fill is a solid capsule that IS the thumb
 - `MenuBarContentView.swift` / `AboutView.swift` / `SettingsView.swift` — SwiftUI UI
 - `LoginItemManager.swift` — thin wrapper around `ServiceManagement.SMAppService`
+- `UpdateChecker.swift` — polls the GitHub Releases API for a newer tag; no
+  dependency, no silent install (this build isn't notarized, so an
+  auto-downloaded update would hit the same Gatekeeper quarantine block as a
+  manual one anyway) — it just tells you a new version exists and links to it
 
 ### Known v1 limitations
 

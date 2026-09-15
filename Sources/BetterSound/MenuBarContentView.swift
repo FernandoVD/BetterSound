@@ -9,6 +9,7 @@ import SwiftUI
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
+    @EnvironmentObject private var updates: UpdateChecker
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -25,6 +26,16 @@ struct MenuBarContentView: View {
             }
 
             Divider()
+
+            if let update = updates.availableUpdate {
+                Link(destination: update.htmlURL) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.up.circle.fill")
+                        Text("Update available: v\(update.version)")
+                    }
+                }
+                .font(.system(size: 12, weight: .semibold))
+            }
 
             Button("BetterSound Settings…") {
                 NSApp.activate(ignoringOtherApps: true)

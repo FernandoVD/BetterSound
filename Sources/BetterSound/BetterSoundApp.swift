@@ -5,12 +5,14 @@ struct BetterSoundApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var audio = AudioEngine()
     @StateObject private var apps = PerAppAudioController()
+    @StateObject private var updates = UpdateChecker()
 
     var body: some Scene {
         MenuBarExtra {
             MenuBarContentView()
                 .environmentObject(audio)
                 .environmentObject(apps)
+                .environmentObject(updates)
         } label: {
             Image(systemName: audio.menuBarIcon)
         }
@@ -29,6 +31,7 @@ struct BetterSoundApp: App {
 
         Window("BetterSound Settings", id: "settings") {
             SettingsView()
+                .environmentObject(updates)
         }
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(.suppressed)
