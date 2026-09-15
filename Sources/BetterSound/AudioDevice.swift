@@ -21,6 +21,15 @@ enum AudioKind {
         case .other: return "speaker.wave.2.fill"
         }
     }
+
+    /// Simpler icon set for the Input section — a generic mic covers most
+    /// cases; AirPods keeps its distinct glyph since it's instantly recognizable.
+    var inputSymbolName: String {
+        switch self {
+        case .airpods: return "airpods"
+        default: return "mic.fill"
+        }
+    }
 }
 
 struct AudioDevice: Identifiable, Hashable {
@@ -38,6 +47,17 @@ struct AudioDevice: Identifiable, Hashable {
             name: name,
             kind: Self.classify(id: id, name: name),
             supportsVolume: CoreAudioController.hasVolume(id)
+        )
+    }
+
+    static func loadInput(_ id: AudioDeviceID) -> AudioDevice {
+        let name = CoreAudioController.name(of: id)
+        return AudioDevice(
+            id: id,
+            uid: CoreAudioController.uid(of: id),
+            name: name,
+            kind: Self.classify(id: id, name: name),
+            supportsVolume: CoreAudioController.inputVolume(of: id) != nil
         )
     }
 

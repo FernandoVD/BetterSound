@@ -9,9 +9,15 @@ final class AudioEngine: ObservableObject {
     @Published private(set) var masterVolume: Float = 0
     @Published private(set) var isMuted: Bool = false
 
+    @Published private(set) var inputDevices: [AudioDevice] = []
+    @Published private(set) var defaultInputDeviceID: AudioDeviceID?
+    @Published private(set) var inputVolume: Float = 0
+
     private let listenerQueue = DispatchQueue(label: "com.fernandovandet.volumemixer.listener")
     private var observedDeviceID: AudioDeviceID?
+    private var observedInputDeviceID: AudioDeviceID?
     private var pendingVolumeWrite: DispatchWorkItem?
+    private var pendingInputVolumeWrite: DispatchWorkItem?
 
     init() {
         refresh()
@@ -42,12 +48,29 @@ final class AudioEngine: ObservableObject {
             }
         }
         refreshCurrentDeviceState()
+
+        inputDevices = CoreAudioController.inputDeviceIDs().map(AudioDevice.loadInput)
+        let currentInput = CoreAudioController.defaultInputDeviceID()
+        defaultInputDeviceID = currentInput
+
+        if let currentInput, currentInput != observedInputDeviceID {
+            observedInputDeviceID = currentInput
+            CoreAudioController.addInputDeviceListener(currentInput, queue: listenerQueue) { [weak self] in
+                Task { @MainActor in self?.refreshCurrentInputDeviceState() }
+            }
+        }
+        refreshCurrentInputDeviceState()
     }
 
     private func refreshCurrentDeviceState() {
         guard let current = defaultDeviceID else { return }
         masterVolume = CoreAudioController.volume(of: current) ?? masterVolume
         isMuted = CoreAudioController.isMuted(current)
+    }
+
+    private func refreshCurrentInputDeviceState() {
+        guard let current = defaultInputDeviceID else { return }
+        inputVolume = CoreAudioController.inputVolume(of: current) ?? inputVolume
     }
 
     func setMasterVolume(_ volume: Float) {
@@ -84,14 +107,20 @@ final class AudioEngine: ObservableObject {
         refresh()
     }
 
-    func setVolume(_ volume: Float, for device: AudioDevice) {
-        CoreAudioController.setVolume(device.id, volume)
-        if device.id == defaultDeviceID {
-            masterVolume = volume
+    func setInputVolume(_ volume: Float) {
+        guard let current = defaultInputDeviceID else { return }
+        inputVolume = volume // instant visual feedback, cheap
+
+        pendingInputVolumeWrite?.cancel()
+        let work = DispatchWorkItem {
+            CoreAudioController.setInputVolume(current, volume)
         }
+        pendingInputVolumeWrite = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.016, execute: work)
     }
 
-    func volume(for device: AudioDevice) -> Float {
-        CoreAudioController.volume(of: device.id) ?? 0
+    func selectInputDevice(_ device: AudioDevice) {
+        CoreAudioController.setDefaultInputDevice(device.id)
+        refresh()
     }
 }

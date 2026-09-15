@@ -45,6 +45,27 @@ enum CoreAudioController {
         return buffers.contains { $0.mNumberChannels > 0 }
     }
 
+    static func inputDeviceIDs() -> [AudioDeviceID] {
+        allDeviceIDs().filter { hasInputStreams($0) }
+    }
+
+    static func hasInputStreams(_ id: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreamConfiguration,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(id, &address, 0, nil, &size) == noErr, size > 0 else { return false }
+
+        let bufferList = UnsafeMutablePointer<AudioBufferList>.allocate(capacity: 1)
+        defer { bufferList.deallocate() }
+        guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, bufferList) == noErr else { return false }
+
+        let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
+        return buffers.contains { $0.mNumberChannels > 0 }
+    }
+
     // MARK: - Default output device
 
     static func defaultOutputDeviceID() -> AudioDeviceID? {
@@ -62,6 +83,30 @@ enum CoreAudioController {
     static func setDefaultOutputDevice(_ id: AudioDeviceID) {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var mutableID = id
+        AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, UInt32(MemoryLayout<AudioDeviceID>.size), &mutableID)
+    }
+
+    // MARK: - Default input device
+
+    static func defaultInputDeviceID() -> AudioDeviceID? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var id = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &id)
+        return status == noErr ? id : nil
+    }
+
+    static func setDefaultInputDevice(_ id: AudioDeviceID) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
@@ -216,12 +261,41 @@ enum CoreAudioController {
         return status == noErr
     }
 
+    static func inputVolume(of id: AudioDeviceID) -> Float? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwareServiceDeviceProperty_VirtualMainVolume,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(id, &address) else { return nil }
+        var volume: Float32 = 0
+        var size = UInt32(MemoryLayout<Float32>.size)
+        let status = AudioObjectGetPropertyData(id, &address, 0, nil, &size, &volume)
+        return status == noErr ? volume : nil
+    }
+
+    @discardableResult
+    static func setInputVolume(_ id: AudioDeviceID, _ volume: Float) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwareServiceDeviceProperty_VirtualMainVolume,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(id, &address) else { return false }
+        var isSettable: DarwinBoolean = false
+        AudioObjectIsPropertySettable(id, &address, &isSettable)
+        guard isSettable.boolValue else { return false }
+        var clamped = max(0, min(1, volume))
+        let status = AudioObjectSetPropertyData(id, &address, 0, nil, UInt32(MemoryLayout<Float32>.size), &clamped)
+        return status == noErr
+    }
+
     // MARK: - Change listeners
 
     /// Registers a listener on the system object for default-output-device and device-list changes.
     /// The block is invoked on the given dispatch queue.
     static func addSystemListener(queue: DispatchQueue, _ handler: @escaping () -> Void) {
-        for selector in [kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDevices] {
+        for selector in [kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDevices] {
             var address = AudioObjectPropertyAddress(
                 mSelector: selector,
                 mScope: kAudioObjectPropertyScopeGlobal,
@@ -244,6 +318,18 @@ enum CoreAudioController {
             AudioObjectAddPropertyListenerBlock(id, &address, queue) { _, _ in
                 handler()
             }
+        }
+    }
+
+    /// Registers a listener for input-volume changes on a specific device.
+    static func addInputDeviceListener(_ id: AudioDeviceID, queue: DispatchQueue, _ handler: @escaping () -> Void) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwareServiceDeviceProperty_VirtualMainVolume,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectAddPropertyListenerBlock(id, &address, queue) { _, _ in
+            handler()
         }
     }
 

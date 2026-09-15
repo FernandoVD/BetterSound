@@ -17,7 +17,8 @@ struct PillSlider: View {
 
             ZStack(alignment: .leading) {
                 Capsule(style: .continuous)
-                    .fill(.quaternary)
+                    .fill(.clear)
+                    .glassEffect(.regular, in: .capsule)
 
                 Capsule(style: .continuous)
                     .fill(.primary.opacity(0.85))

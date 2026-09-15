@@ -1,10 +1,11 @@
 import SwiftUI
 
 /// Matches Apple's own Control Center Sound module directly: bold section
-/// title, a custom pill slider (see PillSlider.swift), device rows with a
-/// circular icon badge tinted green when active (no trailing checkmark), and
-/// no boxed "card" backgrounds — everything just sits on the popover's own
-/// vibrant background with dividers between sections.
+/// title, a custom pill slider (see PillSlider.swift) using real Liquid Glass
+/// for its track, device rows with a glass circular icon badge tinted green
+/// when active (no trailing checkmark), and no boxed "card" backgrounds —
+/// everything just sits on the popover's own vibrant background with
+/// dividers between sections.
 struct MenuBarContentView: View {
     @EnvironmentObject private var audio: AudioEngine
     @EnvironmentObject private var apps: PerAppAudioController
@@ -15,6 +16,8 @@ struct MenuBarContentView: View {
             volumeSection
             Divider()
             outputSection
+            Divider()
+            inputSection
 
             if !apps.items.isEmpty {
                 Divider()
@@ -80,9 +83,52 @@ struct MenuBarContentView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(audio.devices) { device in
-                    DeviceRow(device: device, isSelected: device.id == audio.defaultDeviceID) {
-                        audio.selectDevice(device)
+                GlassEffectContainer {
+                    ForEach(audio.devices) { device in
+                        DeviceRow(
+                            symbolName: device.kind.symbolName,
+                            name: device.name,
+                            isSelected: device.id == audio.defaultDeviceID
+                        ) {
+                            audio.selectDevice(device)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Input
+
+    private var inputSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Input")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 2)
+
+            HStack(spacing: 8) {
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.primary)
+                    .frame(width: 16)
+
+                PillSlider(value: Binding(
+                    get: { audio.inputVolume },
+                    set: { audio.setInputVolume($0) }
+                ), height: 20)
+            }
+
+            if !audio.inputDevices.isEmpty {
+                GlassEffectContainer {
+                    ForEach(audio.inputDevices) { device in
+                        DeviceRow(
+                            symbolName: device.kind.inputSymbolName,
+                            name: device.name,
+                            isSelected: device.id == audio.defaultInputDeviceID
+                        ) {
+                            audio.selectInputDevice(device)
+                        }
                     }
                 }
             }
@@ -105,7 +151,8 @@ struct MenuBarContentView: View {
 }
 
 private struct DeviceRow: View {
-    let device: AudioDevice
+    let symbolName: String
+    let name: String
     let isSelected: Bool
     let action: () -> Void
 
@@ -114,14 +161,15 @@ private struct DeviceRow: View {
             HStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(.quaternary)
-                        .frame(width: 26, height: 26)
-                    Image(systemName: device.kind.symbolName)
+                        .fill(.clear)
+                        .glassEffect(.regular, in: .circle)
+                    Image(systemName: symbolName)
                         .font(.system(size: 12))
                         .foregroundStyle(isSelected ? Color.green : Color.primary)
                 }
+                .frame(width: 26, height: 26)
 
-                Text(device.name)
+                Text(name)
                     .font(.system(size: 13))
                     .foregroundStyle(.primary)
                     .lineLimit(1)

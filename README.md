@@ -14,6 +14,8 @@ directly and only wakes up when a property actually changes.
 - Master volume slider + mute, styled to match Control Center's Sound module
 - Output device switcher with automatic icons (speakers, headphones, AirPods,
   USB, HDMI) and live updates when devices connect/disconnect
+- Input section: a general input-level slider plus a device picker (built-in
+  mic, USB mic, AirPods mic, etc.) — kept simple, no per-app input controls
 - **Per-app volume sliders**, one per running application, plus a per-app
   output picker (send one app to AirPods while everything else stays on
   speakers). macOS has no public "set this app's volume" API, so this works
@@ -30,7 +32,8 @@ directly and only wakes up when a property actually changes.
 
 ## Requirements
 
-- macOS 15 (Sequoia) or later
+- macOS 26 (Tahoe) or later — the UI uses real **Liquid Glass** materials
+  (`glassEffect`, `GlassEffectContainer`), which are macOS 26+ only
 - **Full Xcode** (not just the Command Line Tools) to build — SwiftUI's
   `@State`/`@Binding` macros need the compiler plugins that ship inside
   `Xcode.app`. Install Xcode from the App Store, then:
@@ -84,6 +87,9 @@ its Dock icon and behaves as a normal menu bar app).
 - `PerAppAudioController.swift` — `ObservableObject` listing running apps
   (`NSWorkspace`) and lazily owning one `ProcessTapEngine` per app that's
   actually been touched (volume ≠ 100% or output overridden)
+- `PillSlider.swift` — from-scratch capsule slider (the stock SwiftUI `Slider`
+  doesn't render like Control Center's own); its track uses real Liquid Glass
+  (`.glassEffect`), the fill is a solid capsule that IS the thumb
 - `MenuBarContentView.swift` / `AboutView.swift` / `SettingsView.swift` — SwiftUI UI
 - `LoginItemManager.swift` — thin wrapper around `ServiceManagement.SMAppService`
 
