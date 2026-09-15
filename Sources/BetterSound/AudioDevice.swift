@@ -38,6 +38,11 @@ struct AudioDevice: Identifiable, Hashable {
     let name: String
     let kind: AudioKind
     let supportsVolume: Bool
+    /// False for devices that can't be set as the system default (e.g. some
+    /// virtual drivers like Microsoft Teams' audio device) — such devices
+    /// are still valid targets for per-app output routing, just not for the
+    /// main Output/Input picker.
+    let canBeDefault: Bool
 
     static func load(_ id: AudioDeviceID) -> AudioDevice {
         let name = CoreAudioController.name(of: id)
@@ -46,7 +51,8 @@ struct AudioDevice: Identifiable, Hashable {
             uid: CoreAudioController.uid(of: id),
             name: name,
             kind: Self.classify(id: id, name: name),
-            supportsVolume: CoreAudioController.hasVolume(id)
+            supportsVolume: CoreAudioController.hasVolume(id),
+            canBeDefault: CoreAudioController.canBeDefaultOutput(id)
         )
     }
 
@@ -57,7 +63,8 @@ struct AudioDevice: Identifiable, Hashable {
             uid: CoreAudioController.uid(of: id),
             name: name,
             kind: Self.classify(id: id, name: name),
-            supportsVolume: CoreAudioController.inputVolume(of: id) != nil
+            supportsVolume: CoreAudioController.inputVolume(of: id) != nil,
+            canBeDefault: CoreAudioController.canBeDefaultInput(id)
         )
     }
 

@@ -66,6 +66,37 @@ enum CoreAudioController {
         return buffers.contains { $0.mNumberChannels > 0 }
     }
 
+    /// False for devices that opt out of being a default device (e.g. some
+    /// virtual/loopback drivers like Microsoft Teams' audio device) — macOS
+    /// silently no-ops a switch to one of these (AudioObjectSetPropertyData
+    /// still reports success), so the UI should never offer them as a choice
+    /// in the first place, matching how System Settings' own picker behaves.
+    static func canBeDefaultOutput(_ id: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceCanBeDefaultDevice,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(id, &address) else { return true }
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, &value) == noErr else { return true }
+        return value != 0
+    }
+
+    static func canBeDefaultInput(_ id: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyDeviceCanBeDefaultDevice,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        guard AudioObjectHasProperty(id, &address) else { return true }
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, &value) == noErr else { return true }
+        return value != 0
+    }
+
     // MARK: - Default output device
 
     static func defaultOutputDeviceID() -> AudioDeviceID? {

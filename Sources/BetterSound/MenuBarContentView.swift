@@ -71,9 +71,11 @@ struct MenuBarContentView: View {
             }
 
             if !audio.supportsMasterVolume {
-                Text("\(currentDeviceName) doesn't have a single volume level")
+                Text("No single volume control for this output")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -112,7 +114,11 @@ struct MenuBarContentView: View {
 
     private var outputDeviceMenu: some View {
         Menu {
-            ForEach(audio.devices) { device in
+            // Devices that can't actually be set as the system default (e.g.
+            // Microsoft Teams' virtual audio device) are left out entirely —
+            // macOS silently no-ops a switch to one, so offering it as a
+            // choice would just look broken.
+            ForEach(audio.devices.filter(\.canBeDefault)) { device in
                 Button {
                     audio.selectDevice(device)
                 } label: {
@@ -165,7 +171,7 @@ struct MenuBarContentView: View {
 
     private var inputDeviceMenu: some View {
         Menu {
-            ForEach(audio.inputDevices) { device in
+            ForEach(audio.inputDevices.filter(\.canBeDefault)) { device in
                 Button {
                     audio.selectInputDevice(device)
                 } label: {
