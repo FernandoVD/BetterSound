@@ -72,6 +72,16 @@ struct SettingsView: View {
                             // stable Developer ID signature), so this
                             // recurs too, not just on first install.
                             CopyableCommand(command: "xattr -cr /Applications/BetterSound.app")
+
+                            // brew upgrade can insist nothing's new when a
+                            // user's local tap clone just hasn't resynced —
+                            // link straight to the fix instead of leaving
+                            // them stuck on "already installed".
+                            Link(destination: URL(string: "https://github.com/FernandoVD/BetterSound#updating")!) {
+                                Text("Still says \"already installed\"?")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     } else if updates.checkFailed {
                         Label("Couldn't check for updates", systemImage: "exclamationmark.triangle")

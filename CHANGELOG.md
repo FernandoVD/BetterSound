@@ -2,6 +2,23 @@
 
 All notable changes to BetterSound are documented here.
 
+## [1.2.3] - 2026-09-16
+
+### Added
+- A "Still says already installed?" link in the Settings update prompt,
+  pointing straight to the README's fix for the case where `brew upgrade`
+  insists nothing's new because the local tap clone never actually
+  resynced — traced to a real report where a user's tap sat two commits
+  behind GitHub indefinitely, since `brew update` can silently no-op if it
+  ran recently, and manual `brew update-reset fernandovd/bettersound` was
+  the only thing that unstuck it.
+
+### Documented
+- README: the `brew update-reset` fallback for the same stuck-tap case,
+  and a reminder that an already-running BetterSound needs a real quit
+  (Settings → Quit BetterSound), not just a closed popover, before an
+  update will actually show up.
+
 ## [1.2.2] - 2026-09-16
 
 ### Fixed
