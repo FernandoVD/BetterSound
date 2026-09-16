@@ -86,6 +86,19 @@ brew update && brew upgrade --cask bettersound
 with no argument updates everything you have installed via Homebrew,
 BetterSound included.)
 
+> [!IMPORTANT]
+> If `brew upgrade --cask bettersound` insists "the latest version is
+> already installed" but you know a newer one exists (check the [releases
+> page](https://github.com/FernandoVD/BetterSound/releases)), your local
+> clone of the tap itself is stuck — `brew update` can silently no-op if it
+> ran recently, so it never actually pulled the newer commit. Force it to
+> resync directly, then upgrade:
+>
+> ```bash
+> brew update-reset "$(brew --repository fernandovd/bettersound)"
+> brew upgrade --cask bettersound
+> ```
+
 If you installed manually, updating means repeating the manual-download
 step above with the new zip — there's no separate "update" step for that
 path.

@@ -10,14 +10,18 @@ All notable changes to BetterSound are documented here.
   insists nothing's new because the local tap clone never actually
   resynced — traced to a real report where a user's tap sat two commits
   behind GitHub indefinitely, since `brew update` can silently no-op if it
-  ran recently, and manual `brew update-reset fernandovd/bettersound` was
-  the only thing that unstuck it.
+  ran recently, and a manual `git fetch && git reset --hard origin/main` on
+  the tap's own clone was the only thing that unstuck it.
 
 ### Documented
-- README: the `brew update-reset` fallback for the same stuck-tap case,
-  and a reminder that an already-running BetterSound needs a real quit
-  (Settings → Quit BetterSound), not just a closed popover, before an
-  update will actually show up.
+- README: `brew update-reset "$(brew --repository fernandovd/bettersound)"`
+  as the fallback for the same stuck-tap case — note the full repository
+  path, not just the tap name; `brew update-reset fernandovd/bettersound`
+  fails outright ("is not a Git repository") and would have sent people
+  down a dead end had it shipped as-is. Also added a reminder that an
+  already-running BetterSound needs a real quit (Settings → Quit
+  BetterSound), not just a closed popover, before an update will actually
+  show up.
 
 ## [1.2.2] - 2026-09-16
 
