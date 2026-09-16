@@ -4,6 +4,16 @@ All notable changes to BetterSound are documented here.
 
 ## [1.2.0] - 2026-09-16
 
+### Fixed (post-release, same version)
+- The v1.2.0 binary was arm64-only — a friend's real install on an Intel
+  Mac succeeded via Homebrew but couldn't launch (no Rosetta translation
+  arm64→x86_64). Replaced the release asset in place with a universal
+  (arm64 + x86_64) build; `build-app.sh` now always builds both
+  architectures. See [Requirements](README.md#requirements) for which
+  Intel Macs macOS 26 actually supports.
+- Documented that recent Homebrew versions require `brew trust` before
+  loading a cask from an unfamiliar tap for the first time.
+
 ### Added
 - Live percentage next to Sound, Input, and every per-app row (e.g. "72%"),
   scaled down for secondary rows so it stays out of the way.
