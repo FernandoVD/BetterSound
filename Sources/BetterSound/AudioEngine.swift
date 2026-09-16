@@ -25,6 +25,22 @@ final class AudioEngine: ObservableObject {
     private var pendingVolumeWrite: DispatchWorkItem?
     private var pendingInputVolumeWrite: DispatchWorkItem?
 
+    // The debounced CoreAudio write we do on every drag tick means the
+    // volume this listener reads back can be several ticks stale relative
+    // to what the user's cursor is doing *right now* — the write itself
+    // only lands ~16ms after the tick that scheduled it, and the listener
+    // echo for it arrives some further, unpredictable delay after that. If
+    // the user is still actively dragging when that echo finally arrives,
+    // it can overwrite the already-newer, already-correct value from a
+    // *later* tick with this older one, which reads as the slider
+    // snapping to a value the cursor is nowhere near. Every write we make
+    // pushes this deadline forward; the listener is only trusted to apply
+    // its value once we've been quiet for a bit, i.e. once a change is
+    // actually likely to have come from somewhere else (keyboard keys,
+    // another app) rather than being an echo of our own recent write.
+    private var ignoreVolumeEchoUntil: Date = .distantPast
+    private var ignoreInputVolumeEchoUntil: Date = .distantPast
+
     init() {
         refresh()
         CoreAudioController.addSystemListener(queue: listenerQueue) { [weak self] in
@@ -72,7 +88,17 @@ final class AudioEngine: ObservableObject {
         guard let current = defaultDeviceID else { return }
         if let volume = CoreAudioController.volume(of: current) {
             supportsMasterVolume = true
-            masterVolume = volume
+            // @Published republishes on every assignment even when the new
+            // value equals the old one, which forces a SwiftUI re-render
+            // each time. This listener fires shortly after our own writes
+            // (echoing back what we just set, to also catch changes made
+            // elsewhere, like the keyboard volume keys) — without this
+            // guard, that echo was re-publishing an unchanged value right
+            // after our own instant update, and the resulting back-to-back
+            // renders were the jitter reported on tap.
+            if Date() > ignoreVolumeEchoUntil, abs(volume - masterVolume) > 0.0005 {
+                masterVolume = volume
+            }
         } else {
             // No single volume level for this device (e.g. Multi-Output
             // Device) — don't silently keep showing the previous device's
@@ -80,18 +106,28 @@ final class AudioEngine: ObservableObject {
             // volume." The UI disables the slider when this is false.
             supportsMasterVolume = false
         }
-        isMuted = CoreAudioController.isMuted(current)
+        let muted = CoreAudioController.isMuted(current)
+        if muted != isMuted {
+            isMuted = muted
+        }
     }
 
     private func refreshCurrentInputDeviceState() {
         guard let current = defaultInputDeviceID else { return }
-        inputVolume = CoreAudioController.inputVolume(of: current) ?? inputVolume
-        isInputMuted = CoreAudioController.isInputMuted(current)
+        if let volume = CoreAudioController.inputVolume(of: current),
+           Date() > ignoreInputVolumeEchoUntil, abs(volume - inputVolume) > 0.0005 {
+            inputVolume = volume
+        }
+        let muted = CoreAudioController.isInputMuted(current)
+        if muted != isInputMuted {
+            isInputMuted = muted
+        }
     }
 
     func setMasterVolume(_ volume: Float) {
         guard let current = defaultDeviceID else { return }
         masterVolume = volume // instant visual feedback, cheap
+        ignoreVolumeEchoUntil = Date().addingTimeInterval(0.3)
 
         // The volume scalar and the mute flag are separate CoreAudio
         // properties — 0.0 volume scales the gain down but doesn't
@@ -136,6 +172,7 @@ final class AudioEngine: ObservableObject {
     func setInputVolume(_ volume: Float) {
         guard let current = defaultInputDeviceID else { return }
         inputVolume = volume // instant visual feedback, cheap
+        ignoreInputVolumeEchoUntil = Date().addingTimeInterval(0.3)
 
         // Same reasoning as setMasterVolume: 0% should look and behave like
         // mute, not just display the same number.

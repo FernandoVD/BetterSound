@@ -2,6 +2,27 @@
 
 All notable changes to BetterSound are documented here.
 
+## [1.2.2] - 2026-09-16
+
+### Fixed
+- The Sound and Input sliders could intermittently "jitter" — the value
+  snapping to a position nowhere near the cursor, mid-drag. Root-caused via
+  frame-by-frame analysis of a screen recording (a five-attempt process:
+  animation scoping, a redundant-republish guard, dropping a conditional
+  glass/plain knob swap, tap-vs-drag distance thresholding, and freezing
+  the slider's measured width per gesture all turned out to be treating
+  symptoms, not the cause). The real mechanism: each drag write to
+  CoreAudio is debounced (~16ms), and the listener that echoes it back
+  runs asynchronously — if that echo arrives after the user has already
+  dragged further, it could overwrite the newer, correct value with the
+  stale one it was carrying. Fixed by having every local volume write push
+  forward a short "ignore echo" deadline, so a delayed echo is only ever
+  applied once the user has actually stopped interacting with that
+  slider — at which point an incoming change is genuinely likely to be
+  external (keyboard keys, another app) rather than a late echo of our own
+  write. Per-app sliders never had this listener at all, which is why they
+  were never affected.
+
 ## [1.2.1] - 2026-09-16
 
 ### Added
