@@ -6,11 +6,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 APP_NAME="BetterSound"
-BUILD_DIR=".build/release"
 APP_BUNDLE="${APP_NAME}.app"
 
-echo "==> Building release binary..."
-swift build -c release
+# Universal binary — arm64 for Apple Silicon, x86_64 for the handful of
+# Intel Macs macOS 26 still supports (16" MacBook Pro 2019, 13" MacBook Pro
+# 2020, 2020 iMac, 2019 Mac Pro; Apple has said Tahoe is the last macOS
+# version to support Intel at all). --show-bin-path finds the real output
+# directory rather than hardcoding it, since SwiftPM's layout can vary.
+echo "==> Building universal release binary (arm64 + x86_64)..."
+swift build -c release --arch arm64 --arch x86_64
+BUILD_DIR="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)"
 
 echo "==> Assembling ${APP_BUNDLE}..."
 rm -rf "$APP_BUNDLE"

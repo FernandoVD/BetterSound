@@ -57,6 +57,12 @@ brew tap fernandovd/bettersound
 brew install --cask bettersound
 ```
 
+> [!NOTE]
+> Recent Homebrew versions refuse to load a cask from a tap it hasn't seen
+> before: `Refusing to load cask ... from untrusted tap`. If you hit that,
+> run `brew trust --cask fernandovd/bettersound/bettersound` (or
+> `brew trust fernandovd/bettersound`) once, then re-run `brew install`.
+
 ### Manual download
 
 Grab `BetterSound.zip` from the [latest release](https://github.com/FernandoVD/BetterSound/releases/latest), unzip it, and move `BetterSound.app` to `/Applications`.
@@ -110,6 +116,15 @@ or right-click `BetterSound.app` in Finder → **Open** → confirm.
 
 - macOS 26 (Tahoe) or later — the UI uses real **Liquid Glass** materials
   (`glassEffect`, `GlassEffectContainer`), which are macOS 26+ only
+- **Apple Silicon or Intel** — releases are universal binaries (verified:
+  `lipo -info` shows both `arm64` and `x86_64` slices). Apple has said
+  Tahoe is the last macOS version to support Intel at all, and only 4 Intel
+  Mac models can run it: the 16" MacBook Pro (2019), the four-port 13"
+  MacBook Pro (2020), the 2020 iMac, and the 2019 Mac Pro. Homebrew itself
+  has dropped official support for Intel macOS as of this writing (installs
+  still work, just flagged as a community-supported "Tier 3" configuration
+  with a warning) — this hasn't been tested on real Intel hardware, only
+  verified to build and link correctly for that architecture.
 - **Full Xcode** (not just the Command Line Tools) to build — SwiftUI's
   `@State`/`@Binding` macros need the compiler plugins that ship inside
   `Xcode.app`. Install Xcode from the App Store, then:
@@ -126,9 +141,11 @@ or right-click `BetterSound.app` in Finder → **Open** → confirm.
 ## Building
 
 ```bash
-swift build -c release          # sanity-check the build
-./Scripts/build-app.sh          # produces BetterSound.app, ad-hoc signed
+swift build -c release          # sanity-check the build (host arch only)
+./Scripts/build-app.sh          # produces a universal BetterSound.app, ad-hoc signed
 ```
+
+`build-app.sh` builds for `arm64` and `x86_64` together (`swift build --arch arm64 --arch x86_64`) so the resulting `.app` runs on both. A plain `swift build` without those flags only builds for your host architecture — fine for iterating locally, not for a release.
 
 Then move `BetterSound.app` to `/Applications` and open it. Running it from
 a stable location matters for the "Launch at Login" toggle to keep working
