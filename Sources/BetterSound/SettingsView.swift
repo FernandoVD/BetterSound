@@ -65,8 +65,12 @@ struct SettingsView: View {
                             }
 
                             // brew install a second time silently does
-                            // nothing — give the actual upgrade command.
-                            CopyableCommand(command: "brew upgrade --cask bettersound")
+                            // nothing, and plain `brew update` can skip
+                            // resyncing a third-party tap like this one and
+                            // leave upgrade seeing a stale "already
+                            // installed" — --force is what actually
+                            // guarantees a real check.
+                            CopyableCommand(command: "brew update --force && brew upgrade --cask bettersound")
 
                             // Every update re-quarantines the app (no
                             // stable Developer ID signature), so this

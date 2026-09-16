@@ -78,21 +78,23 @@ Grab `BetterSound.zip` from the [latest release](https://github.com/FernandoVD/B
 To actually update:
 
 ```bash
-brew update && brew upgrade --cask bettersound
+brew update --force && brew upgrade --cask bettersound
 ```
 
-`brew update` refreshes the tap so Homebrew knows a newer version exists;
-`brew upgrade --cask bettersound` is what installs it. (Bare `brew upgrade`
-with no argument updates everything you have installed via Homebrew,
-BetterSound included.)
+Plain `brew update` (no `--force`) skips refreshing things it heuristically
+decides are "unnecessary," which in practice means it can silently leave a
+third-party tap like this one stuck on an old commit even when you run it
+right before upgrading — confirmed directly on a real install that stayed
+two releases behind no matter how many times `brew update && brew upgrade`
+was run. `--force` ("always do a slower, full update check") is what
+actually guarantees the tap resyncs. `brew upgrade --cask bettersound` is
+what installs it once it has.
 
 > [!IMPORTANT]
-> If `brew upgrade --cask bettersound` insists "the latest version is
+> If `brew upgrade --cask bettersound` still insists "the latest version is
 > already installed" but you know a newer one exists (check the [releases
-> page](https://github.com/FernandoVD/BetterSound/releases)), your local
-> clone of the tap itself is stuck — `brew update` can silently no-op if it
-> ran recently, so it never actually pulled the newer commit. Force it to
-> resync directly, then upgrade:
+> page](https://github.com/FernandoVD/BetterSound/releases)), force the
+> tap's local clone to resync directly, then upgrade:
 >
 > ```bash
 > brew update-reset "$(brew --repository fernandovd/bettersound)"

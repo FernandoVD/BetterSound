@@ -2,6 +2,20 @@
 
 All notable changes to BetterSound are documented here.
 
+## [1.2.4] - 2026-09-16
+
+### Fixed
+- The in-app update prompt (popover and Settings) now copies
+  `brew update --force && brew upgrade --cask bettersound` instead of bare
+  `brew upgrade --cask bettersound`. Traced to the same stuck-tap issue
+  recurring on a real install a second time, on a machine confirmed to have
+  no relevant Homebrew environment variables set: plain `brew update`
+  skips refreshing things it heuristically decides are "unnecessary," which
+  in practice can leave a third-party tap like this one stuck on an old
+  commit indefinitely, no matter how many times `brew update && brew
+  upgrade` is run. `--force` ("always do a slower, full update check") is
+  what actually guarantees a real resync — verified directly, twice.
+
 ## [1.2.3] - 2026-09-16
 
 ### Added
