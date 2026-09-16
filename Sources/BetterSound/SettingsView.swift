@@ -86,14 +86,28 @@ struct SettingsView: View {
 
             Divider()
 
-            Button {
-                openWindow(id: "about")
-            } label: {
-                Text("About BetterSound")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+            HStack {
+                Button {
+                    openWindow(id: "about")
+                } label: {
+                    Text("About BetterSound")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button {
+                    NSApp.terminate(nil)
+                } label: {
+                    Text("Quit BetterSound")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
             .padding(.vertical, 10)
         }
         .frame(width: 360, height: 360)
