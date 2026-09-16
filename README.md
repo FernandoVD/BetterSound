@@ -101,6 +101,18 @@ after each update the same way:
 xattr -cr /Applications/BetterSound.app
 ```
 
+> [!IMPORTANT]
+> If BetterSound is already running, `brew upgrade` (or a manual reinstall)
+> only replaces the app bundle on disk — it doesn't touch the already-running
+> process, which keeps the old version in memory until it's actually
+> terminated. Closing the popover doesn't quit it; as a menu bar-only app
+> there's no Dock icon or Cmd+Q, so use **Settings → Quit BetterSound**, then
+> reopen it. If it still looks outdated after that, force it from Terminal:
+>
+> ```bash
+> killall BetterSound; open -a BetterSound
+> ```
+
 Either way, this build is **ad-hoc signed, not notarized** — no paid Apple
 Developer account behind this project — so on first launch Gatekeeper will
 say `"BetterSound" Not Opened`. That's not a malware flag, just macOS being
