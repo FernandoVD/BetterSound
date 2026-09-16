@@ -59,6 +59,13 @@ struct PillSlider: View {
             .frame(height: height)
             .contentShape(Rectangle())
             .animation(.easeOut(duration: 0.15), value: isDragging)
+            // A tap (not a drag) still briefly toggles isDragging true→false
+            // almost instantly, which triggers the animation above — and
+            // without this, that swept the knob/fill *position* into the
+            // same animated transition too, visibly clipping/overlapping
+            // when a tap jumped the value a long way. Position must always
+            // be instant; only the glass/opacity effects above should ease.
+            .animation(nil, value: value)
             .gesture(
                 // .disabled() alone doesn't stop a custom-drawn view's own
                 // gesture — this view has to opt out of it itself.
