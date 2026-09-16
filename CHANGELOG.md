@@ -2,6 +2,21 @@
 
 All notable changes to BetterSound are documented here.
 
+## [1.2.1] - 2026-09-16
+
+### Added
+- "Quit BetterSound" button in Settings, next to "About BetterSound."
+
+### Fixed
+- Tapping (not dragging) a slider from a low value straight to a much
+  higher one visibly clipped/overlapped as it jumped. An ambient
+  `.animation(_:value:)` modifier used for the drag-state glass/opacity
+  transition was implicitly animating the knob's *position* too, since a
+  tap still briefly toggles the underlying drag state true→false. Rewritten
+  to use explicit `withAnimation` blocks scoped only to the drag-state
+  mutation, so position changes are structurally always instant regardless
+  of what else changes in the same gesture callback.
+
 ## [1.2.0] - 2026-09-16
 
 ### Fixed (post-release, same version)
